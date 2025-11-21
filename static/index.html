@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>TravelAI - AI-Powered Travel Planning & Personalized Itineraries</title>
+    <meta name="title" content="TravelAI - AI-Powered Travel Planning & Personalized Itineraries">
+    <meta name="description"
+        content="Plan your perfect journey with AI-powered travel recommendations. Get personalized itineraries, local insights, and comprehensive travel guides powered by advanced multi-agent AI technology.">
+    <meta name="keywords"
+        content="AI travel planning, travel itinerary generator, personalized travel guide, trip planner, AI travel assistant, vacation planning, travel recommendations">
+    <meta name="author" content="TravelAI">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://travelai.app">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://travelai.app">
+    <meta property="og:title" content="TravelAI - AI-Powered Travel Planning">
+    <meta property="og:description"
+        content="Plan your perfect journey with AI-powered travel recommendations. Get personalized itineraries and comprehensive travel guides.">
+    <meta property="og:image" content="https://travelai.app/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="TravelAI - AI-Powered Travel Planning Interface">
+    <meta property="og:site_name" content="TravelAI">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://travelai.app">
+    <meta name="twitter:title" content="TravelAI - AI-Powered Travel Planning">
+    <meta name="twitter:description"
+        content="Plan your perfect journey with AI-powered travel recommendations and personalized itineraries.">
+    <meta name="twitter:image" content="https://travelai.app/twitter-card.jpg">
+    <meta name="twitter:image:alt" content="TravelAI Interface Screenshot">
+    <meta name="twitter:creator" content="@travelai">
+
+    <!-- Favicon & App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3b82f6">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#09090b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TravelAI">
+    <meta name="application-name" content="TravelAI">
+    <meta name="msapplication-TileColor" content="#3b82f6">
+    <meta name="msapplication-config" content="/browserconfig.xml">
+
+    <!-- Security -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
+
+    <!-- Fonts with optimized loading -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/css/style.css?v=5">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "TravelAI",
+        "description": "AI-Powered Travel Planning and Personalized Itinerary Generator",
+        "url": "https://travelai.app",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "TravelAI",
+            "url": "https://travelai.app"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "1247"
+        }
+    }
+    </script>
+</head>
+
+<body>
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content"
+        class="skip-link sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--accent-primary)] focus:text-white focus:rounded-lg focus:font-medium">
+        Skip to main content
+    </a>
+
+    <!-- Main Application Container -->
+    <div id="app" role="main" aria-label="Main application content"></div>
+
+    <!-- API Configuration -->
+    <script>
+        window.API_CONFIG = {
+            baseURL: window.location.origin,
+            endpoints: {
+                generate: '/api/generate',
+                stream: '/api/stream',
+                languages: '/api/languages',
+                health: '/health',
+                analytics: '/api/analytics',
+                recommendations: '/api/recommendations',
+                export: '/api/export',
+                search: '/api/search',
+                favorites: '/api/favorites/add',
+                itinerary: '/api/itinerary/create',
+                notifications: '/api/notifications',
+                performance: '/api/performance',
+                auth: {
+                    login: '/auth/login',
+                    logout: '/auth/logout',
+                    user: '/auth/user',
+                    callback: '/auth/callback'
+                }
+            },
+            timeout: 30000,
+            retries: 3
+        };
+    </script>
+
+    <!-- Main Application Scripts -->
+    <script src="/js/utils.js?v=5"></script>
+    <script src="/js/app.js?v=5"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function (registration) {
+                        logger.info('ServiceWorker registered:', registration.scope);
+                    })
+                    .catch(function (err) {
+                        logger.warn('ServiceWorker registration failed:', err);
+                    });
+            });
+        }
+    </script>
+</body>
+
+</html>

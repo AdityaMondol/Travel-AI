@@ -1,0 +1,63 @@
+# Dockerignore - exclude files from Docker context
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+tests/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# CI/CD
+.github/
+
+# Application data (excluded from image)
+output/
+.cache/
+*.log
+.sessions.json
+
+# Environment
+.env
+.env.*
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

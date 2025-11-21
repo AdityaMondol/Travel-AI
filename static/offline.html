@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline | TravelAI</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+        .cloud {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="min-h-screen flex items-center justify-center px-6">
+        <div class="error-container max-w-md">
+            <svg class="cloud w-20 h-20 mx-auto mb-8 text-[var(--text-secondary)]" xmlns="http://www.w3.org/2000/svg"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+            </svg>
+
+            <h1 class="error-title">You're Offline</h1>
+            <p class="error-message">
+                It looks like you've lost your internet connection. Some features may be limited while offline.
+            </p>
+
+            <div class="card p-6 rounded-xl text-left mb-6">
+                <h2 class="font-semibold mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-[var(--accent-primary)]" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    What you can do:
+                </h2>
+                <ul class="space-y-2 text-[var(--text-secondary)] text-sm">
+                    <li class="flex gap-2">
+                        <span>•</span>
+                        <span>Check your internet connection</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <span>•</span>
+                        <span>View previously loaded content</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <span>•</span>
+                        <span>Try again when you're back online</span>
+                    </li>
+                </ul>
+            </div>
+
+            <button onclick="location.reload()"
+                class="btn btn-primary px-6 py-3 rounded-xl font-semibold inline-flex items-center gap-2 w-full justify-center">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Try Again
+            </button>
+        </div>
+    </div>
+</body>
+
+</html>
