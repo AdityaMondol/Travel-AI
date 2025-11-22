@@ -12,7 +12,6 @@ from app.core.llm_client import LLMClient
 from app.core.file_manager import FileManager
 from app.services.orchestrator import create_travel_plan
 from app.services.html_generator import PremiumHTMLGenerator as HTMLGenerator
-from app.core.auth_manager import SessionManager
 from app.core.telemetry import TelemetryCollector, AnalyticsEngine
 
 logger = setup_logger(__name__)
@@ -24,7 +23,6 @@ class APIServer:
         except Exception as e:
             logger.error(f"Failed to initialize LLM client: {e}")
             self.llm_client = None
-        self.session_manager = SessionManager()
         self.telemetry = TelemetryCollector()
         self.analytics = AnalyticsEngine()
     
@@ -191,11 +189,24 @@ try:
     @app.get("/manifest.json")
     async def manifest():
         return FileResponse("static/manifest.json", media_type="application/json")
+        
+    @app.get("/icon-144x144.png")
+    async def icon_144():
+        # Serve SVG as fallback for now to prevent 404
+        return FileResponse("static/favicon.svg", media_type="image/svg+xml")
     
     @app.get("/service-worker.js")
     async def service_worker():
         return FileResponse("static/service-worker.js", media_type="application/javascript")
     
+    @app.get("/offline.html")
+    async def offline():
+        return FileResponse("static/offline.html", media_type="text/html")
+        
+    @app.get("/index.html")
+    async def index_file():
+        return FileResponse("static/index.html", media_type="text/html")
+
     @app.get("/robots.txt")
     async def robots():
         return FileResponse("static/robots.txt", media_type="text/plain")

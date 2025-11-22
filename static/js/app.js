@@ -93,36 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Theme Management
 const themes = {
-    dark: {
-        name: 'Dark',
-        icon: 'moon',
-        color: '#3b82f6',
-        bgPreview: '#09090b'
-    },
-    light: {
-        name: 'Light',
-        icon: 'sun',
-        color: '#3b82f6',
-        bgPreview: '#ffffff'
-    },
-    ocean: {
-        name: 'Ocean',
-        icon: 'waves',
-        color: '#06b6d4',
-        bgPreview: '#0a1628'
-    },
-    sunset: {
-        name: 'Sunset',
-        icon: 'sunset',
-        color: '#f97316',
-        bgPreview: '#1a0b2e'
-    },
-    forest: {
-        name: 'Forest',
-        icon: 'trees',
-        color: '#10b981',
-        bgPreview: '#0f1c14'
-    }
+    dark: { name: 'Dark', icon: 'moon' },
+    light: { name: 'Light', icon: 'sun' },
+    ocean: { name: 'Ocean', icon: 'waves' },
+    sunset: { name: 'Sunset', icon: 'sunset' },
+    forest: { name: 'Forest', icon: 'trees' }
 };
 
 function applyTheme(themeName) {
@@ -140,42 +115,27 @@ function toggleThemeSwitcher() {
 
 function renderThemeSwitcher() {
     return `
-        <!-- Theme Switcher Trigger -->
         <div class="theme-switcher">
-            <button 
-                onclick="toggleThemeSwitcher()"
-                class="theme-trigger"
-                title="Change Theme"
-            >
-                <i data-lucide="palette" class="w-5 h-5"></i>
+            <button class="theme-trigger" onclick="toggleThemeSwitcher()" title="Change Theme">
+                <i data-lucide="palette" style="width: 20px; height: 20px;"></i>
             </button>
             
-            <!-- Theme Panel -->
             <div id="themeSwitcherPanel" class="theme-panel hidden">
                 <div class="theme-panel-header">
-                    <span class="font-semibold">Choose Theme</span>
-                    <button onclick="toggleThemeSwitcher()" class="theme-close">
-                        <i data-lucide="x" class="w-4 h-4"></i>
+                    <span>Theme</span>
+                    <button class="theme-close" onclick="toggleThemeSwitcher()">
+                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
                     </button>
                 </div>
                 <div class="theme-grid">
                     ${Object.keys(themes).map(themeKey => `
-                        <button
-                            onclick="changeTheme('${themeKey}')"
-                            class="theme-option ${state.theme === themeKey ? 'active' : ''}"
-                        >
-                            <div class="theme-preview" style="background: ${themes[themeKey].bgPreview}">
-                                <div class="theme-accent" style="background: ${themes[themeKey].color}"></div>
-                            </div>
+                        <button class="theme-option ${state.theme === themeKey ? 'active' : ''}" onclick="changeTheme('${themeKey}')">
+                            <div class="theme-preview"></div>
                             <div class="theme-info">
-                                <i data-lucide="${themes[themeKey].icon}" class="w-4 h-4"></i>
-                                <span class="text-sm font-medium">${themes[themeKey].name}</span>
+                                <i data-lucide="${themes[themeKey].icon}" style="width: 14px; height: 14px;"></i>
+                                <span>${themes[themeKey].name}</span>
                             </div>
-                            ${state.theme === themeKey ? `
-                                <div class="theme-check">
-                                    <i data-lucide="check" class="w-3 h-3"></i>
-                                </div>
-                            ` : ''}
+                            ${state.theme === themeKey ? `<div class="theme-check"><i data-lucide="check" style="width: 12px; height: 12px;"></i></div>` : ''}
                         </button>
                     `).join('')}
                 </div>
@@ -187,10 +147,7 @@ function renderThemeSwitcher() {
 function changeTheme(themeName) {
     applyTheme(themeName);
     renderView();
-    // Re-create icons after theme change
-    setTimeout(() => {
-        lucide.createIcons();
-    }, 100);
+    setTimeout(() => lucide.createIcons(), 100);
 }
 
 // Router
@@ -246,7 +203,7 @@ function toggleVoiceInput() {
     try {
         recognition.start();
         const btn = document.getElementById('micBtn');
-        if (btn) btn.classList.add('text-[var(--accent-primary)]', 'animate-pulse');
+        if (btn) btn.style.color = 'var(--accent-primary)';
     } catch (e) {
         recognition.stop();
     }
@@ -264,144 +221,125 @@ function speakText(text) {
     synth.speak(utterance);
 }
 
-// Update renderLanding to include Mic button
+// Landing Page
 function renderLanding() {
     app.innerHTML = `
-        <!-- Animated Background -->
         <div class="bg-animated">
             <div class="bg-orb bg-orb-1"></div>
             <div class="bg-orb bg-orb-2"></div>
         </div>
 
-        <div class="min-h-screen flex flex-col">
+        <div style="min-height: 100vh; display: flex; flex-direction: column;">
             <!-- Header -->
-            <header class="border-b border-[var(--border-primary)] backdrop-blur fade-in">
-                <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center">
-                            <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+            <header style="border-bottom: 1px solid var(--border-primary); padding: 16px 0; position: relative; z-index: 10;">
+                <div style="max-width: 1280px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="globe" style="width: 18px; height: 18px; color: white;"></i>
                         </div>
-                        <span class="font-semibold text-lg">TravelAI</span>
+                        <span style="font-size: 18px; font-weight: 600; letter-spacing: -0.5px;">TravelAI</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button id="userMenuBtn" onclick="toggleUserMenu()" class="btn btn-ghost px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-                            <i data-lucide="user" class="w-4 h-4"></i>
-                            <span id="userNameDisplay">Account</span>
-                        </button>
-                        <button class="btn btn-ghost px-4 py-2 rounded-lg text-sm font-medium">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button onclick="showAbout()" class="btn btn-ghost" style="font-size: 14px;">
+                            <i data-lucide="info" style="width: 16px; height: 16px;"></i>
                             About
+                        </button>
+                        <button id="userMenuBtn" onclick="toggleUserMenu()" class="btn btn-ghost" style="font-size: 14px;">
+                            <i data-lucide="user" style="width: 16px; height: 16px;"></i>
+                            <span id="userNameDisplay">Account</span>
                         </button>
                     </div>
                 </div>
                 <!-- User Menu Dropdown -->
-                <div id="userMenuDropdown" class="hidden absolute top-16 right-6 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg shadow-lg z-50">
-                    <button onclick="loginWithGoogle()" class="w-full text-left px-4 py-2 hover:bg-[var(--bg-tertiary)] flex items-center gap-2">
-                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                <div id="userMenuDropdown" class="hidden" style="position: absolute; top: 56px; right: 24px; width: 200px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 50; overflow: hidden;">
+                    <button onclick="loginWithGoogle()" style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: transparent; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: background 0.2s;">
+                        <i data-lucide="log-in" style="width: 16px; height: 16px;"></i>
                         Login with Google
                     </button>
-                    <button id="logoutBtn" onclick="logoutUser()" class="w-full text-left px-4 py-2 hover:bg-[var(--bg-tertiary)] flex items-center gap-2 hidden">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <button id="logoutBtn" onclick="logoutUser()" style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: transparent; color: var(--text-primary); cursor: pointer; display: none; align-items: center; gap: 8px; font-size: 14px; transition: background 0.2s;">
+                        <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
                         Logout
                     </button>
                 </div>
             </header>
 
             <!-- Main Content -->
-            <main class="flex-1 flex items-center justify-center px-6 py-12">
-                <div class="w-full max-w-2xl space-y-8">
-                    <!-- Badge -->
-                    <div class="flex justify-center fade-in">
-                        <span class="badge inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium">
-                            <i data-lucide="sparkles" class="w-4 h-4"></i>
-                            AI-Powered Travel Planning
-                        </span>
-                    </div>
-
-                    <!-- Title -->
-                    <div class="text-center space-y-4 fade-in" style="animation-delay: 0.1s">
-                        <h1 class="text-5xl md:text-6xl font-bold gradient-text">
-                            Plan your next journey
+            <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 24px;">
+                <div style="width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 48px;">
+                    
+                    <!-- Hero Section -->
+                    <div style="text-align: center; display: flex; flex-direction: column; gap: 24px; animation: fadeIn 0.6s ease-out;">
+                        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 6px; width: fit-content; margin: 0 auto; font-size: 13px; font-weight: 500; color: var(--text-secondary);">
+                            <i data-lucide="cpu" style="width: 14px; height: 14px;"></i>
+                            Powered by AI
+                        </div>
+                        
+                        <h1 style="font-size: 56px; font-weight: 700; line-height: 1.2; letter-spacing: -1px; margin: 0;">
+                            <span class="gradient-text">Plan your perfect journey</span>
                         </h1>
-                        <p class="text-xl text-[var(--text-secondary)] max-w-xl mx-auto">
-                            Get personalized travel recommendations powered by advanced AI technology
+                        
+                        <p style="font-size: 18px; color: var(--text-secondary); margin: 0; max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.6;">
+                            Get AI-powered travel recommendations tailored to your style and budget
                         </p>
                     </div>
 
-                    <!-- Search Input -->
-                    <div class="space-y-4 fade-in" style="animation-delay: 0.2s">
-                        <div class="relative">
-                            <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <i data-lucide="search" class="w-5 h-5 text-[var(--text-tertiary)]"></i>
+                    <!-- Search Section -->
+                    <div style="display: flex; flex-direction: column; gap: 16px; animation: fadeIn 0.6s ease-out 0.1s both;">
+                        <div style="position: relative;">
+                            <div style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); pointer-events: none;">
+                                <i data-lucide="search" style="width: 18px; height: 18px; color: var(--text-tertiary);"></i>
                             </div>
                             <input
                                 type="text"
                                 id="destinationInput"
                                 placeholder="Where do you want to go?"
-                                class="input-field w-full pl-12 pr-12 py-4 rounded-xl text-lg font-medium"
+                                class="input-field"
+                                style="width: 100%; padding: 14px 16px 14px 44px; font-size: 16px;"
                                 onkeypress="handleSearchEnter(event)"
                                 autofocus
                             />
                             <button 
                                 id="micBtn"
                                 onclick="toggleVoiceInput()"
-                                class="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--accent-primary)] transition-colors"
+                                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 4px; transition: color 0.2s;"
                                 title="Voice Search"
                             >
-                                <i data-lucide="mic" class="w-5 h-5"></i>
+                                <i data-lucide="mic" style="width: 18px; height: 18px;"></i>
                             </button>
                         </div>
                         
                         <button
                             type="button"
                             onclick="handleSearch(event)"
-                            class="btn btn-primary w-full py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 glow"
+                            class="btn btn-primary"
+                            style="width: 100%; padding: 14px 24px; font-size: 16px; font-weight: 600;"
                         >
-                            Generate Itinerary
-                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                            Generate Guide
+                            <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
                         </button>
                     </div>
 
-                    <!-- Quick Suggestions -->
-                    <div class="flex flex-wrap justify-center gap-2 fade-in" style="animation-delay: 0.3s">
-                        <span class="text-sm text-[var(--text-tertiary)] font-medium">Popular destinations:</span>
-                        ${['Tokyo', 'Paris', 'New York', 'Dubai', 'Bali', 'London'].map((city, i) => `
-                            <button
-                                onclick="setDestination('${city}')"
-                                class="badge text-sm px-4 py-2 rounded-lg font-medium"
-                                style="animation-delay: ${0.3 + (i * 0.05)}s"
-                            >
-                                ${city}
-                            </button>
-                        `).join('')}
-                    </div>
-
-                    <!-- Features -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-8 fade-in" style="animation-delay: 0.4s">
-                        ${[
-            { icon: 'map-pin', title: 'Top Places', desc: 'Curated attractions' },
-            { icon: 'calendar', title: 'Itineraries', desc: 'Day-by-day plans' },
-            { icon: 'utensils', title: 'Local Food', desc: 'Must-try dishes' },
-            { icon: 'star', title: 'Recommendations', desc: 'Personalized tips' },
-            { icon: 'download', title: 'Export', desc: 'Multiple formats' },
-            { icon: 'search', title: 'Search', desc: 'Find anything' }
-        ].map(feature => `
-                            <div class="card p-4 rounded-xl text-center">
-                                <div class="inline-flex p-3 rounded-lg bg-[var(--bg-tertiary)] mb-3">
-                                    <i data-lucide="${feature.icon}" class="w-5 h-5 text-[var(--accent-primary)]"></i>
-                                </div>
-                                <h3 class="font-semibold mb-1">${feature.title}</h3>
-                                <p class="text-sm text-[var(--text-secondary)]">${feature.desc}</p>
-                            </div>
-                        `).join('')}
+                    <!-- Popular Destinations -->
+                    <div style="display: flex; flex-direction: column; gap: 12px; animation: fadeIn 0.6s ease-out 0.2s both;">
+                        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500; margin: 0;">Popular destinations</p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${['Tokyo', 'Paris', 'New York', 'Dubai', 'Bali', 'Barcelona'].map((city, i) => `
+                                <button
+                                    onclick="setDestination('${city}')"
+                                    class="badge"
+                                    style="font-size: 13px; animation: fadeIn 0.4s ease-out ${0.3 + (i * 0.05)}s both;"
+                                >
+                                    ${city}
+                                </button>
+                            `).join('')}
+                        </div>
                     </div>
                 </div>
             </main>
 
             <!-- Footer -->
-            <footer class="border-t border-[var(--border-primary)] backdrop-blur fade-in">
-                <div class="max-w-7xl mx-auto px-6 py-6 text-center text-sm text-[var(--text-secondary)]">
-                    © 2025 TravelAI. Powered by AI • Made with ❤️
-                </div>
+            <footer style="border-top: 1px solid var(--border-primary); padding: 24px; text-align: center; color: var(--text-tertiary); font-size: 13px;">
+                © 2025 TravelAI. Crafted with care.
             </footer>
         </div>
 
@@ -409,96 +347,105 @@ function renderLanding() {
     `;
 }
 
-// Update renderDashboard to include Speak buttons
+// Loading Page
+function renderLoading() {
+    app.innerHTML = `
+        <div class="bg-animated">
+            <div class="bg-orb bg-orb-1"></div>
+            <div class="bg-orb bg-orb-2"></div>
+        </div>
+
+        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;">
+            <div style="width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 32px;">
+                <div style="text-align: center; display: flex; flex-direction: column; gap: 16px;">
+                    <h1 style="font-size: 32px; font-weight: 700; margin: 0;">Generating your guide</h1>
+                    <p style="color: var(--text-secondary); margin: 0;">Our AI agents are working on your travel plan...</p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-tertiary);">
+                        <span>Progress</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div style="width: 0%; height: 100%;"></div>
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <p id="loadingStatus" style="color: var(--text-secondary); margin: 0; font-size: 14px;">Initializing...</p>
+                </div>
+
+                <div id="loadingSteps" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto;"></div>
+
+                <button onclick="goBack()" class="btn btn-secondary" style="width: 100%; padding: 12px 24px;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        ${renderThemeSwitcher()}
+    `;
+}
+
+// Dashboard Page
 function renderDashboard() {
     const data = state.data || {};
     const destination = data.destination || state.destination;
     const places = data.places?.places || [];
     const itinerary = data.itinerary?.three_days || [];
     const dishes = data.food?.must_try_dishes || [];
-    const weather = data.weather || {};
-    const budget = data.budget || {};
 
     app.innerHTML = `
-        <!-- Animated Background -->
         <div class="bg-animated">
             <div class="bg-orb bg-orb-1"></div>
             <div class="bg-orb bg-orb-2"></div>
         </div>
 
-        <div class="min-h-screen">
+        <div style="min-height: 100vh;">
             <!-- Header -->
-            <header class="sticky top-0 z-50 border-b border-[var(--border-primary)] backdrop backdrop-blur fade-in">
-                <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <button onclick="goBack()" class="btn btn-ghost p-2 rounded-lg">
-                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            <header style="border-bottom: 1px solid var(--border-primary); padding: 16px 0; position: sticky; top: 0; z-index: 10; background: var(--bg-primary);">
+                <div style="max-width: 1280px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <button onclick="goBack()" class="btn btn-ghost" style="padding: 8px;">
+                            <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
                         </button>
                         <div>
-                            <h1 class="font-bold text-lg">${destination}</h1>
-                            <p class="text-xs text-[var(--text-tertiary)]">Your Travel Guide</p>
+                            <h1 style="font-size: 20px; font-weight: 600; margin: 0;">${destination}</h1>
+                            <p style="font-size: 13px; color: var(--text-tertiary); margin: 0;">Your travel guide</p>
                         </div>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="speakText('Here is your travel guide for ${destination}')" class="btn btn-ghost p-2 rounded-lg" title="Read Aloud">
-                            <i data-lucide="volume-2" class="w-5 h-5"></i>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="speakText('Here is your travel guide for ${destination}')" class="btn btn-ghost" title="Read Aloud">
+                            <i data-lucide="volume-2" style="width: 18px; height: 18px;"></i>
                         </button>
-                        <a href="${data.filename || '#'}" download class="btn btn-secondary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-                            <i data-lucide="download" class="w-4 h-4"></i>
+                        <button onclick="exportGuide('html')" class="btn btn-secondary" style="font-size: 14px;">
+                            <i data-lucide="download" style="width: 16px; height: 16px;"></i>
                             Export
-                        </a>
+                        </button>
                     </div>
                 </div>
             </header>
 
             <!-- Main Content -->
-            <main class="max-w-7xl mx-auto px-6 py-8 space-y-10">
+            <main style="max-width: 1280px; margin: 0 auto; padding: 48px 24px; display: flex; flex-direction: column; gap: 48px;">
                 
-                <!-- Hero Stats -->
-                <section class="fade-in">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        ${[
-            { icon: 'thermometer', label: 'Climate', value: weather.current_season || 'Moderate', gradient: true },
-            { icon: 'banknote', label: 'Currency', value: budget.local_currency || 'N/A' },
-            { icon: 'shield-check', label: 'Safety', value: data.safety_health?.safety_level || 'Good' }
-        ].map((stat, i) => `
-                            <div class="card ${stat.gradient ? 'card-gradient' : ''} p-6 rounded-xl slide-in" style="animation-delay: ${i * 0.1}s">
-                                <div class="flex items-center gap-3 mb-3">
-                                    <i data-lucide="${stat.icon}" class="w-6 h-6 ${stat.gradient ? 'text-white' : 'text-[var(--accent-primary)]'}"></i>
-                                    <span class="text-sm ${stat.gradient ? 'text-white/80' : 'text-[var(--text-secondary)]'} font-medium">${stat.label}</span>
-                                </div>
-                                <p class="text-2xl font-bold ${stat.gradient ? 'text-white' : ''}">${stat.value}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                </section>
-
                 <!-- Places Section -->
                 ${places.length > 0 ? `
-                <section class="fade-in" style="animation-delay: 0.2s">
-                    <div class="flex items-end justify-between mb-6">
-                        <div>
-                            <h2 class="text-3xl font-bold mb-1">Top Places</h2>
-                            <p class="text-[var(--text-secondary)]">Must-visit destinations</p>
-                        </div>
-                        <div class="badge px-4 py-2 rounded-lg">
-                            ${places.length} locations
-                        </div>
+                <section style="animation: fadeIn 0.6s ease-out;">
+                    <div style="margin-bottom: 24px;">
+                        <h2 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">Top Places</h2>
+                        <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">Must-visit destinations</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
                         ${places.slice(0, 6).map((place, i) => `
-                            <div class="card rounded-xl overflow-hidden scale-in" style="animation-delay: ${0.3 + (i * 0.05)}s">
-                                <div class="aspect-video overflow-hidden bg-[var(--bg-tertiary)] image-zoom">
-                                    <img
-                                        src="${place.image_url}"
-                                        alt="${place.name}"
-                                        class="w-full h-full object-cover"
-                                        onerror="this.src='https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop'"
-                                    />
+                            <div class="card" style="overflow: hidden; animation: fadeIn 0.6s ease-out ${0.1 + (i * 0.05)}s both;">
+                                <div class="image-zoom" style="height: 200px;">
+                                    <img src="${place.image_url}" alt="${place.name}" onerror="this.src='https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop'" />
                                 </div>
-                                <div class="p-5">
-                                    <h3 class="font-semibold text-lg mb-2">${place.name}</h3>
-                                    <p class="text-sm text-[var(--text-secondary)] line-clamp-2">${place.description || 'A must-visit destination in ' + destination}</p>
+                                <div style="padding: 16px;">
+                                    <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">${place.name}</h3>
+                                    <p style="font-size: 14px; color: var(--text-secondary); margin: 0; line-height: 1.5;">${place.description || 'A must-visit destination'}</p>
                                 </div>
                             </div>
                         `).join('')}
@@ -508,27 +455,27 @@ function renderDashboard() {
 
                 <!-- Itinerary Section -->
                 ${itinerary.length > 0 ? `
-                <section class="fade-in" style="animation-delay: 0.4s">
-                    <div class="mb-6">
-                        <h2 class="text-3xl font-bold mb-1">3-Day Itinerary</h2>
-                        <p class="text-[var(--text-secondary)]">Your perfect travel plan</p>
+                <section style="animation: fadeIn 0.6s ease-out 0.1s both;">
+                    <div style="margin-bottom: 24px;">
+                        <h2 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">3-Day Itinerary</h2>
+                        <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">Your perfect travel plan</p>
                     </div>
-                    <div class="space-y-4">
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
                         ${itinerary.map((day, index) => `
-                            <div class="card p-6 rounded-xl slide-in" style="animation-delay: ${0.5 + (index * 0.1)}s">
-                                <div class="flex items-center gap-4 mb-4">
-                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center text-lg font-bold text-white">
+                            <div class="card" style="padding: 24px; animation: fadeIn 0.6s ease-out ${0.2 + (index * 0.1)}s both;">
+                                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 16px;">
                                         ${day.day || index + 1}
                                     </div>
                                     <div>
-                                        <h3 class="font-bold text-lg">Day ${day.day || index + 1}</h3>
-                                        <p class="text-sm text-[var(--text-secondary)]">${(day.activities || []).length} activities planned</p>
+                                        <h3 style="font-size: 16px; font-weight: 600; margin: 0;">Day ${day.day || index + 1}</h3>
+                                        <p style="font-size: 13px; color: var(--text-tertiary); margin: 0;">${(day.activities || []).length} activities</p>
                                     </div>
                                 </div>
-                                <ul class="space-y-3">
+                                <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
                                     ${(day.activities || []).map(activity => `
-                                        <li class="flex gap-3 text-[var(--text-secondary)]">
-                                            <i data-lucide="check-circle" class="w-5 h-5 text-[var(--success)] flex-shrink-0 mt-0.5"></i>
+                                        <li style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--text-secondary);">
+                                            <i data-lucide="check-circle" style="width: 16px; height: 16px; color: var(--accent-primary); flex-shrink: 0; margin-top: 2px;"></i>
                                             <span>${activity}</span>
                                         </li>
                                     `).join('')}
@@ -541,41 +488,20 @@ function renderDashboard() {
 
                 <!-- Food Section -->
                 ${dishes.length > 0 ? `
-                <section class="fade-in" style="animation-delay: 0.6s">
-                    <div class="mb-6">
-                        <h2 class="text-3xl font-bold mb-1">Must-Try Dishes</h2>
-                        <p class="text-[var(--text-secondary)]">Local culinary experiences</p>
+                <section style="animation: fadeIn 0.6s ease-out 0.2s both;">
+                    <div style="margin-bottom: 24px;">
+                        <h2 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">Must-Try Dishes</h2>
+                        <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">Local culinary experiences</p>
                     </div>
-                    <div class="flex flex-wrap gap-3">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                         ${dishes.map((dish, i) => `
-                            <span class="card px-5 py-3 rounded-lg font-medium scale-in" style="animation-delay: ${0.7 + (i * 0.05)}s">
+                            <span class="badge" style="animation: fadeIn 0.4s ease-out ${0.3 + (i * 0.05)}s both;">
                                 ${dish}
                             </span>
                         `).join('')}
                     </div>
                 </section>
                 ` : ''}
-
-                <!-- Export Section -->
-                <section class="fade-in" style="animation-delay: 0.8s">
-                    <div class="mb-6">
-                        <h2 class="text-3xl font-bold mb-1">Export Your Guide</h2>
-                        <p class="text-[var(--text-secondary)]">Download in your preferred format</p>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        ${[
-                            { format: 'json', icon: 'file-json', label: 'JSON' },
-                            { format: 'markdown', icon: 'file-text', label: 'Markdown' },
-                            { format: 'html', icon: 'file-code', label: 'HTML' },
-                            { format: 'pdf', icon: 'file-pdf', label: 'PDF' }
-                        ].map((fmt, i) => `
-                            <button onclick="exportGuide('${fmt.format}')" class="card p-4 rounded-xl text-center hover:bg-[var(--accent-primary)] hover:text-white transition-all scale-in" style="animation-delay: ${0.9 + (i * 0.05)}s">
-                                <i data-lucide="${fmt.icon}" class="w-8 h-8 mx-auto mb-2"></i>
-                                <p class="font-semibold">${fmt.label}</p>
-                            </button>
-                        `).join('')}
-                    </div>
-                </section>
 
             </main>
         </div>
@@ -589,102 +515,6 @@ function handleSearchEnter(event) {
     if (event.key === 'Enter') {
         handleSearch();
     }
-}
-
-// API Call & SSE
-function startStream(destination) {
-    const eventSource = new EventSource(`/api/stream?destination=${encodeURIComponent(destination)}&mother_tongue=en`);
-    const stepsEl = document.getElementById('loadingSteps');
-    const statusEl = document.getElementById('loadingStatus');
-    const progressBar = document.querySelector('.progress-bar > div');
-
-    // Reset steps
-    if (stepsEl) stepsEl.innerHTML = '';
-    let completedAgents = 0;
-    const totalAgents = 16; // Approx total agents
-
-    eventSource.onmessage = function (event) {
-        const data = JSON.parse(event.data);
-
-        if (data.type === 'start') {
-            if (statusEl) statusEl.textContent = 'Initializing AI Agent Army...';
-        } else if (data.type === 'agent_start') {
-            if (statusEl) statusEl.textContent = `Agent ${data.agent} is working...`;
-            addAgentStep(data.agent, 'working');
-        } else if (data.type === 'agent_complete') {
-            updateAgentStep(data.agent, 'completed');
-            completedAgents++;
-            if (progressBar) {
-                progressBar.style.width = `${(completedAgents / totalAgents) * 100}%`;
-            }
-        } else if (data.type === 'agent_error') {
-            updateAgentStep(data.agent, 'error');
-        } else if (data.type === 'complete') {
-            eventSource.close();
-
-            // Store the context data and transition to dashboard
-            if (data.context) {
-                state.data = data.context;
-                state.view = 'dashboard';
-                renderView();
-            } else {
-                // Fallback: if no context, display error
-                alert('Data processing completed but no results received.');
-                goBack();
-            }
-        }
-    };
-
-    eventSource.onerror = function (error) {
-        console.error('EventSource failed:', error);
-        eventSource.close();
-        alert('Connection lost. Please try again.');
-        goBack();
-    };
-}
-
-function addAgentStep(agentName, status) {
-    const stepsEl = document.getElementById('loadingSteps');
-    if (!stepsEl) return;
-
-    const stepDiv = document.createElement('div');
-    stepDiv.id = `agent-${agentName}`;
-    stepDiv.className = 'flex items-center gap-3 p-4 card rounded-lg slide-in border-l-4 border-[var(--accent-primary)]';
-    stepDiv.innerHTML = `
-        <i data-lucide="loader-2" class="w-5 h-5 text-[var(--accent-primary)] spinner"></i>
-        <div class="flex-1">
-            <h4 class="font-semibold text-sm capitalize">${agentName} Agent</h4>
-            <p class="text-xs text-[var(--text-secondary)]">Analyzing data...</p>
-        </div>
-    `;
-    stepsEl.prepend(stepDiv); // Add to top
-    lucide.createIcons();
-}
-
-function updateAgentStep(agentName, status) {
-    const stepDiv = document.getElementById(`agent-${agentName}`);
-    if (!stepDiv) return;
-
-    if (status === 'completed') {
-        stepDiv.className = 'flex items-center gap-3 p-4 card rounded-lg border-l-4 border-[var(--success)]';
-        stepDiv.innerHTML = `
-            <i data-lucide="check-circle" class="w-5 h-5 text-[var(--success)]"></i>
-            <div class="flex-1">
-                <h4 class="font-semibold text-sm capitalize">${agentName} Agent</h4>
-                <p class="text-xs text-[var(--text-secondary)]">Task completed</p>
-            </div>
-        `;
-    } else if (status === 'error') {
-        stepDiv.className = 'flex items-center gap-3 p-4 card rounded-lg border-l-4 border-red-500';
-        stepDiv.innerHTML = `
-            <i data-lucide="alert-circle" class="w-5 h-5 text-red-500"></i>
-            <div class="flex-1">
-                <h4 class="font-semibold text-sm capitalize">${agentName} Agent</h4>
-                <p class="text-xs text-[var(--text-secondary)]">Task failed</p>
-            </div>
-        `;
-    }
-    lucide.createIcons();
 }
 
 function handleSearch(event) {
@@ -739,7 +569,7 @@ async function checkUserAuth() {
         const user = await response.json();
         if (user.authenticated && user.name) {
             document.getElementById('userNameDisplay').textContent = user.name;
-            document.getElementById('logoutBtn').classList.remove('hidden');
+            document.getElementById('logoutBtn').style.display = 'flex';
         }
     } catch (e) {
         console.log('User not authenticated');
@@ -753,94 +583,191 @@ async function exportGuide(format) {
     }
     
     try {
-        const response = await fetch('/api/export', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                destination: state.destination,
-                language: 'en'
-            })
+        const response = await API.post('/api/export', {
+            destination: state.destination,
+            language: 'en'
         });
         
-        const result = await response.json();
-        if (result.status === 'success') {
+        if (response.status === 'success') {
             alert(`Guide exported successfully as ${format.toUpperCase()}`);
         } else {
-            alert('Export failed: ' + result.message);
+            alert('Export failed: ' + response.message);
         }
     } catch (e) {
         alert('Export error: ' + e.message);
     }
 }
 
-async function getRecommendations() {
-    if (!state.destination) return;
+function startStream(destination) {
+    let completedAgents = 0;
+    const totalAgents = 16;
     
-    try {
-        const response = await fetch(`/api/recommendations?destination=${encodeURIComponent(state.destination)}`);
-        const result = await response.json();
-        if (result.status === 'success') {
-            console.log('Recommendations:', result.recommendations);
-            alert('Recommendations loaded! Check console for details.');
+    const eventSource = API.stream(
+        `/api/stream?destination=${encodeURIComponent(destination)}&mother_tongue=en`,
+        (data) => {
+            if (data.type === 'agent_start') {
+                addAgentStep(data.agent, 'working');
+            } else if (data.type === 'agent_complete') {
+                completedAgents++;
+                updateAgentStep(data.agent, 'completed');
+                updateProgress(completedAgents, totalAgents);
+            } else if (data.type === 'complete') {
+                eventSource.close();
+                if (data.context) {
+                    state.data = data.context;
+                    state.view = 'dashboard';
+                    renderView();
+                }
+            }
+        },
+        (error) => {
+            console.error('Stream error:', error);
+            alert('Connection lost. Please try again.');
+            goBack();
         }
-    } catch (e) {
-        console.error('Recommendations error:', e);
+    );
+}
+
+function updateProgress(completed, total) {
+    const percentage = Math.round((completed / total) * 100);
+    const progressBar = document.querySelector('.progress-bar > div');
+    const progressPercent = document.getElementById('progressPercent');
+    
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+    }
+    if (progressPercent) {
+        progressPercent.textContent = percentage + '%';
     }
 }
 
-async function searchPlaces(query) {
-    if (!state.destination) return;
-    
-    try {
-        const response = await fetch(`/api/search?destination=${encodeURIComponent(state.destination)}&query=${encodeURIComponent(query)}`);
-        const result = await response.json();
-        if (result.status === 'success') {
-            console.log('Search results:', result.results);
-            return result.results;
-        }
-    } catch (e) {
-        console.error('Search error:', e);
-    }
+function addAgentStep(agentName, status) {
+    const stepsEl = document.getElementById('loadingSteps');
+    if (!stepsEl) return;
+
+    const stepDiv = document.createElement('div');
+    stepDiv.id = `agent-${agentName}`;
+    stepDiv.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 8px;
+        border-left: 3px solid var(--accent-primary);
+        animation: slideIn 0.3s ease-out;
+    `;
+    stepDiv.innerHTML = `
+        <i data-lucide="loader-2" style="width: 16px; height: 16px; color: var(--accent-primary); animation: spin 1s linear infinite;"></i>
+        <div style="flex: 1;">
+            <p style="font-size: 13px; font-weight: 500; margin: 0; text-transform: capitalize;">${agentName}</p>
+            <p style="font-size: 12px; color: var(--text-tertiary); margin: 0;">Processing...</p>
+        </div>
+    `;
+    stepsEl.prepend(stepDiv);
+    lucide.createIcons();
 }
 
-function renderLoading() {
-    app.innerHTML = `
-        <div class="min-h-screen flex flex-col items-center justify-center px-6">
-            <div class="max-w-2xl w-full space-y-8">
-                <!-- Loading Header -->
-                <div class="text-center space-y-4">
-                    <h1 class="text-4xl font-bold gradient-text">Generating Your Guide</h1>
-                    <p class="text-[var(--text-secondary)]">Our AI Agent Army is working on your travel plan...</p>
-                </div>
+function updateAgentStep(agentName, status) {
+    const stepDiv = document.getElementById(`agent-${agentName}`);
+    if (!stepDiv) return;
 
-                <!-- Progress Bar -->
-                <div class="space-y-2">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-[var(--text-secondary)]">Progress</span>
-                        <span id="progressPercent" class="text-[var(--accent-primary)]">0%</span>
-                    </div>
-                    <div class="progress-bar h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] w-0 transition-all duration-300"></div>
-                    </div>
-                </div>
+    if (status === 'completed') {
+        stepDiv.style.borderLeftColor = 'var(--success)';
+        stepDiv.innerHTML = `
+            <i data-lucide="check-circle" style="width: 16px; height: 16px; color: var(--success);"></i>
+            <div style="flex: 1;">
+                <p style="font-size: 13px; font-weight: 500; margin: 0; text-transform: capitalize;">${agentName}</p>
+                <p style="font-size: 12px; color: var(--text-tertiary); margin: 0;">Completed</p>
+            </div>
+        `;
+    }
+    lucide.createIcons();
+}
 
-                <!-- Status -->
-                <div class="text-center">
-                    <p id="loadingStatus" class="text-[var(--text-secondary)] font-medium">Initializing...</p>
+function showAbout() {
+    const aboutModal = document.createElement('div');
+    aboutModal.id = 'aboutModal';
+    aboutModal.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 24px;
+        animation: fadeIn 0.3s ease-out;
+    `;
+    
+    aboutModal.innerHTML = `
+        <div class="card" style="max-width: 600px; max-height: 80vh; overflow-y: auto; padding: 32px; animation: scaleIn 0.3s ease-out;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="font-size: 24px; font-weight: 700; margin: 0;">About TravelAI</h2>
+                <button onclick="document.getElementById('aboutModal').remove()" class="btn btn-ghost" style="padding: 4px;">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 16px; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
+                <p style="margin: 0;">
+                    <strong>TravelAI</strong> is a production-ready, AI-powered travel planning platform that leverages a sophisticated multi-agent architecture to generate personalized, comprehensive travel guides with real-time streaming updates.
+                </p>
+                
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">Key Features</h3>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>16+ specialized AI agents working in parallel</li>
+                        <li>Real-time streaming updates via Server-Sent Events</li>
+                        <li>Dynamic LLM support (Google Gemini, OpenRouter, NVIDIA NIM)</li>
+                        <li>Voice interaction with TTS and STT</li>
+                        <li>Premium UI with 5 stunning themes</li>
+                        <li>Progressive Web App with offline support</li>
+                        <li>Enterprise-grade security</li>
+                        <li>WCAG 2.2 AA accessibility</li>
+                    </ul>
                 </div>
-
-                <!-- Agent Steps -->
-                <div id="loadingSteps" class="space-y-3 max-h-96 overflow-y-auto">
-                    <!-- Agents will be added here -->
+                
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">Tech Stack</h3>
+                    <p style="margin: 0;">
+                        <strong>Backend:</strong> Python 3.11 + FastAPI + Uvicorn<br>
+                        <strong>Frontend:</strong> HTML5 + Vanilla JS + Tailwind CSS<br>
+                        <strong>AI/LLM:</strong> Google Gemini, OpenRouter, NVIDIA NIM<br>
+                        <strong>DevOps:</strong> Docker + Docker Compose
+                    </p>
                 </div>
-
-                <!-- Cancel Button -->
-                <div class="flex justify-center">
-                    <button onclick="goBack()" class="btn btn-secondary px-6 py-2 rounded-lg font-medium">
-                        Cancel
-                    </button>
+                
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">Capabilities</h3>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>Generate comprehensive travel guides</li>
+                        <li>Personalized recommendations</li>
+                        <li>Multi-format export (JSON, Markdown, HTML)</li>
+                        <li>Advanced search and filtering</li>
+                        <li>Favorites and bookmarks</li>
+                        <li>Itinerary customization</li>
+                        <li>Real-time analytics</li>
+                    </ul>
+                </div>
+                
+                <div style="border-top: 1px solid var(--border-primary); padding-top: 16px; margin-top: 16px;">
+                    <p style="margin: 0; font-size: 12px; color: var(--text-tertiary);">
+                        © 2025 TravelAI. Made with ❤️ by the TravelAI Team.<br>
+                        <a href="https://github.com" style="color: var(--accent-primary); text-decoration: none;">GitHub</a> • 
+                        <a href="https://docs.example.com" style="color: var(--accent-primary); text-decoration: none;">Documentation</a>
+                    </p>
                 </div>
             </div>
         </div>
     `;
+    
+    document.body.appendChild(aboutModal);
+    aboutModal.addEventListener('click', (e) => {
+        if (e.target === aboutModal) {
+            aboutModal.remove();
+        }
+    });
+    lucide.createIcons();
 }

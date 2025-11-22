@@ -34,10 +34,10 @@
 - Input sanitization
 
 ### Export Capabilities
-- **JSON**: Structured data export
-- **Markdown**: Readable text format
-- **HTML**: Standalone web pages
-- **PDF**: Print-friendly documents (planned)
+- JSON: Structured data export
+- Markdown: Readable text format
+- HTML: Standalone web pages
+- PDF: Print-friendly documents (planned)
 
 ### Search & Discovery
 - Full-text search across places
@@ -80,27 +80,27 @@
 ## API Endpoints
 
 ### Travel Planning
-- `POST /api/generate` - Generate travel guide
-- `GET /api/stream` - Stream real-time updates
-- `GET /api/languages` - Get supported languages
-- `GET /api/guide/html` - Get HTML version
+- POST /api/generate - Generate travel guide
+- GET /api/stream - Stream real-time updates
+- GET /api/languages - Get supported languages
+- GET /api/guide/html - Get HTML version
 
 ### Recommendations
-- `GET /api/recommendations` - Get personalized recommendations
-- `POST /api/itinerary/create` - Create custom itinerary
+- GET /api/recommendations - Get personalized recommendations
+- POST /api/itinerary/create - Create custom itinerary
 
 ### Search & Export
-- `GET /api/search` - Search places
-- `POST /api/export` - Export in multiple formats
+- GET /api/search - Search places
+- POST /api/export - Export in multiple formats
 
 ### User Features
-- `POST /api/favorites/add` - Add to favorites
-- `GET /api/notifications` - Get notifications
+- POST /api/favorites/add - Add to favorites
+- GET /api/notifications - Get notifications
 
 ### System
-- `GET /health` - Health check
-- `GET /api/analytics` - System analytics
-- `GET /api/performance` - Performance metrics
+- GET /health - Health check
+- GET /api/analytics - System analytics
+- GET /api/performance - Performance metrics
 
 ## Security Features
 

@@ -132,30 +132,35 @@ class Orchestrator:
         import asyncio
         
         loop = asyncio.get_event_loop()
-        futures = []
         
-        for name in phase1_agents:
-            yield f"data: {json.dumps({'type': 'agent_start', 'agent': name})}\n\n"
-            # We'll run sequentially for now to ensure smooth streaming updates, 
-            # or we can use asyncio.gather but that waits for all.
-            # To stream as they finish, we need as_completed logic.
-            
-            # Let's try a hybrid: launch all, then await them.
-            # But to yield *as* they finish, we need to wrap them.
-            
-            # Simpler approach for now: Sequential execution for streaming to show off the "agent army" working one by one.
-            # It looks cooler in the UI anyway.
-            
+        # Helper to run agent and return name + result
+        async def run_agent_async(name):
             try:
                 agent = self.agents[name]
                 # Run in thread to not block loop
-                result = await loop.run_in_executor(None, agent.execute, context)
+                res = await loop.run_in_executor(None, agent.execute, context)
+                return name, res, None
+            except Exception as e:
+                return name, None, str(e)
+
+        # Start all phase 1 agents
+        tasks = [run_agent_async(name) for name in phase1_agents]
+        
+        # Notify that all agents are starting
+        for name in phase1_agents:
+             yield f"data: {json.dumps({'type': 'agent_start', 'agent': name})}\n\n"
+        
+        # Process as they complete
+        for future in asyncio.as_completed(tasks):
+            name, result, error = await future
+            
+            if error:
+                logger.error(f"Agent {name} failed: {error}")
+                yield f"data: {json.dumps({'type': 'agent_error', 'agent': name, 'error': error})}\n\n"
+            else:
                 context.update(result)
                 context["agents_active"].append(name)
                 yield f"data: {json.dumps({'type': 'agent_complete', 'agent': name})}\n\n"
-            except Exception as e:
-                logger.error(f"Agent {name} failed: {e}")
-                yield f"data: {json.dumps({'type': 'agent_error', 'agent': name, 'error': str(e)})}\n\n"
 
         # Phase 2
         yield f"data: {json.dumps({'type': 'agent_start', 'agent': 'itinerary'})}\n\n"

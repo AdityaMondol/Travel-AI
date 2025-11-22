@@ -1,4 +1,4 @@
-# TravelAI 🌍✈️ - AI-Powered Travel Planning
+# TravelAI - AI-Powered Travel Planning
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
@@ -7,24 +7,24 @@
 
 A production-ready, AI-powered travel planning platform that leverages a sophisticated multi-agent architecture to generate personalized, comprehensive travel guides with real-time streaming updates.
 
-## ✨ Features
+## Features
 
 ### Core Capabilities
-- **🤖 Multi-Agent AI Architecture**: 16+ specialized AI agents working in parallel (History, Weather, Itinerary, Culinary, Safety, Nightlife, and more)
-- **⚡ Real-time Streaming**: Server-Sent Events (SSE) for live progress updates during guide generation
-- **🧠 Dynamic LLM Support**: Seamlessly switch between Google Gemini, OpenRouter, and NVIDIA NIM
-- **🎙️ Voice Interaction**: Integrated Text-to-Speech (TTS) and Speech-to-Text (STT) for hands-free experience
-- **📱 Progressive Web App (PWA)**: Install as a native app on any device with offline support
-- **🎨 Premium UI/UX**: Glassmorphism 2.0 design with 5 stunning themes, smooth animations, and responsive layout
+- **Multi-Agent AI Architecture**: 16+ specialized AI agents working in parallel (History, Weather, Itinerary, Culinary, Safety, Nightlife, and more)
+- **Real-time Streaming**: Server-Sent Events (SSE) for live progress updates during guide generation
+- **Dynamic LLM Support**: Seamlessly switch between Google Gemini, OpenRouter, and NVIDIA NIM
+- **Voice Interaction**: Integrated Text-to-Speech (TTS) and Speech-to-Text (STT) for hands-free experience
+- **Progressive Web App (PWA)**: Install as a native app on any device with offline support
+- **Premium UI/UX**: Glassmorphism 2.0 design with 5 stunning themes, smooth animations, and responsive layout
 
 ### Production Quality
-- **🔒 Enterprise Security**: CSP, HSTS, XSS protection, rate limiting, input sanitization
-- **♿ WCAG 2.2 AA Accessibility**: Full keyboard navigation, screen reader support, focus management
-- **🚀 High Performance**: Optimized for speed with lazy loading, code splitting, and caching strategies
-- **📊 Comprehensive Testing**: 90%+ test coverage with unit, integration, and E2E tests
-- **📈 SEO Optimized**: Rich meta tags, Open Graph, Twitter Cards, JSON-LD structured data
+- **Enterprise Security**: CSP, HSTS, XSS protection, rate limiting, input sanitization
+- **WCAG 2.2 AA Accessibility**: Full keyboard navigation, screen reader support, focus management
+- **High Performance**: Optimized for speed with lazy loading, code splitting, and caching strategies
+- **Comprehensive Testing**: 90%+ test coverage with unit, integration, and E2E tests
+- **SEO Optimized**: Rich meta tags, Open Graph, Twitter Cards, JSON-LD structured data
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
 - **Framework**: Python 3.11 + FastAPI + Uvicorn
@@ -43,7 +43,7 @@ A production-ready, AI-powered travel planning platform that leverages a sophist
 - **Code Quality**: Black, Flake8, Mypy, Bandit
 - **Security**: Safety, dependency scanning
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -97,7 +97,7 @@ A production-ready, AI-powered travel planning platform that leverages a sophist
    
    The application will be available at http://localhost:8000
 
-## 🔌 API Documentation
+## API Documentation
 
 ### Interactive API Docs
 - **Swagger UI**: http://localhost:8000/api/docs
@@ -153,7 +153,7 @@ Health check endpoint for monitoring.
 }
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Running Tests
 ```bash
@@ -185,7 +185,7 @@ mypy app/
 bandit -r app/
 ```
 
-## 🚀 Deployment
+## Deployment
 
 ### Docker Deployment
 The application includes a production-ready Dockerfile and docker-compose configuration.
@@ -221,7 +221,7 @@ ENABLE_ANALYTICS=true
 LOG_LEVEL=INFO
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -256,7 +256,7 @@ LOG_LEVEL=INFO
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please follow these steps:
 
@@ -275,24 +275,24 @@ We welcome contributions! Please follow these steps:
 - Write docstrings for public APIs
 - Maintain test coverage above 90%
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with [FastAPI](https://fastapi.tiangolo.com/)
 - UI inspired by modern design principles
 - Icons by [Lucide](https://lucide.dev/)
 - Fonts by [Google Fonts](https://fonts.google.com/)
 
-## 📧 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/travelai/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/travelai/discussions)
 - **Email**: support@travelai.app
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [ ] Mobile apps (iOS & Android)
 - [ ] Multi-language UI (currently English)
@@ -304,6 +304,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-Made with ❤️ by the TravelAI Team
-#   T r a v e l - A I  
+Made by the TravelAI Team
+#   T r a v e l - A I 
+ 
+ #   T r a v e l - A I 
+ 
  

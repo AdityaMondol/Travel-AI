@@ -7,7 +7,7 @@
 **Problem**: "Failed to initialize LLM client"
 
 **Solutions**:
-- Verify API keys in `.env` file
+- Verify API keys in .env file
 - Check internet connection
 - Ensure API key has correct permissions
 - Try switching LLM provider in config
@@ -23,7 +23,7 @@ curl -X GET https://api.openrouter.ai/api/v1/models
 
 **Solutions**:
 - Wait 60 seconds before retrying
-- Increase `RATE_LIMIT_REQUESTS` in `.env`
+- Increase RATE_LIMIT_REQUESTS in .env
 - Use different IP address
 - Implement exponential backoff in client
 
@@ -43,7 +43,7 @@ curl -X GET https://api.openrouter.ai/api/v1/models
 **Problem**: Export returns error
 
 **Solutions**:
-- Verify `output` directory exists and is writable
+- Verify output directory exists and is writable
 - Check disk space
 - Ensure file permissions are correct
 - Try different export format
@@ -59,7 +59,7 @@ chmod 755 output
 **Problem**: Google OAuth login fails
 
 **Solutions**:
-- Verify `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+- Verify GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET
 - Check redirect URI matches Google Console settings
 - Clear browser cookies
 - Try incognito/private mode
@@ -70,18 +70,18 @@ chmod 755 output
 **Problem**: Slow response times
 
 **Solutions**:
-- Enable caching: `CACHE_ENABLED=true`
+- Enable caching: CACHE_ENABLED=true
 - Reduce number of agents (modify orchestrator)
-- Increase `AGENT_TIMEOUT` value
+- Increase AGENT_TIMEOUT value
 - Check system resources (CPU, memory)
-- Monitor with `/api/performance` endpoint
+- Monitor with /api/performance endpoint
 
 ### 7. Frontend Not Loading
 
 **Problem**: Blank page or 404 errors
 
 **Solutions**:
-- Check static files exist in `static/` directory
+- Check static files exist in static/ directory
 - Verify Tailwind CSS CDN is accessible
 - Check browser console for errors
 - Clear browser cache
@@ -92,10 +92,10 @@ chmod 755 output
 **Problem**: Cache errors or data not persisting
 
 **Solutions**:
-- Clear `.cache` directory
-- Verify `.cache` directory permissions
+- Clear .cache directory
+- Verify .cache directory permissions
 - Check disk space
-- Disable cache if problematic: `CACHE_ENABLED=false`
+- Disable cache if problematic: CACHE_ENABLED=false
 
 ### 9. CORS Errors
 
@@ -103,7 +103,7 @@ chmod 755 output
 
 **Solutions**:
 - Verify CORS middleware is enabled
-- Check `allow_origins` setting
+- Check allow_origins setting
 - Use proxy for development
 - Ensure requests use correct headers
 
@@ -115,7 +115,7 @@ chmod 755 output
 - Restart application periodically
 - Clear old telemetry data
 - Reduce cache TTL
-- Monitor with `/api/performance`
+- Monitor with /api/performance
 - Check for circular references in code
 
 ## Debug Mode

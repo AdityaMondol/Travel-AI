@@ -91,11 +91,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Note: This is a basic CSP, adjust based on your needs
         csp_directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: https: blob:",
-            "connect-src 'self'",
+            "connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.tailwindcss.com https://unpkg.com",
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "form-action 'self'"
