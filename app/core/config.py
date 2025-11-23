@@ -71,6 +71,7 @@ class Settings(BaseSettings):
         "mistral-medium": "mistralai/mistral-medium",
         "nemotron": "nvidia/nemotron-4-340b-instruct",
         "openai": "docker-compose up --build"
+        "openai": "openai/gpt-oss-20b"
     }
     
     SUPPORTED_LANGUAGES: Dict[str, str] = {

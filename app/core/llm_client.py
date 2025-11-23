@@ -82,20 +82,32 @@ class LLMClient:
         return None
     
     def _generate_nvidia(self, prompt: str, temperature: float, max_tokens: int) -> Optional[str]:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
-            "max_tokens": max_tokens
-        }
-        response = requests.post(f"{self.base_url}/chat/completions", json=payload, headers=headers, timeout=30)
-        if response.status_code == 200:
-            return response.json()["choices"][0]["message"]["content"]
-        return None
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+            response = requests.post(f"{self.base_url}/chat/completions", json=payload, headers=headers, timeout=60)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "choices" in data and len(data["choices"]) > 0:
+                    return data["choices"][0]["message"]["content"]
+            else:
+                logger.error(f"NVIDIA API error: {response.status_code} - {response.text}")
+            return None
+        except requests.exceptions.Timeout:
+            logger.error("NVIDIA API timeout")
+            return None
+        except Exception as e:
+            logger.error(f"NVIDIA API error: {e}")
+            return None
     
     def generate_json(self, prompt: str) -> Optional[str]:
         json_prompt = f"{prompt}\n\nRespond with valid JSON only."

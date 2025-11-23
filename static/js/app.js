@@ -12,76 +12,8 @@ const state = {
 // DOM Reference
 const app = document.getElementById('app');
 
-// API Helper
-const API = {
-    async request(endpoint, options = {}) {
-        const url = `${state.apiConfig.baseURL || ''}${endpoint}`;
-        const defaultOptions = {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            timeout: state.apiConfig.timeout || 30000
-        };
-        
-        const config = { ...defaultOptions, ...options };
-        
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), config.timeout);
-            
-            const response = await fetch(url, {
-                ...config,
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({ message: response.statusText }));
-                throw new Error(error.message || `HTTP ${response.status}`);
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error(`API Error [${endpoint}]:`, error);
-            throw error;
-        }
-    },
-    
-    async get(endpoint) {
-        return this.request(endpoint, { method: 'GET' });
-    },
-    
-    async post(endpoint, data) {
-        return this.request(endpoint, {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    },
-    
-    stream(endpoint, onMessage, onError) {
-        const url = `${state.apiConfig.baseURL || ''}${endpoint}`;
-        const eventSource = new EventSource(url);
-        
-        eventSource.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                onMessage(data);
-            } catch (e) {
-                console.error('Stream parse error:', e);
-            }
-        };
-        
-        eventSource.onerror = (error) => {
-            console.error('Stream error:', error);
-            eventSource.close();
-            if (onError) onError(error);
-        };
-        
-        return eventSource;
-    }
-};
+// Use global API client
+const API = apiClient;
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
@@ -172,40 +104,66 @@ function renderView() {
 const synth = window.speechSynthesis;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
+let isListening = false;
 
 if (SpeechRecognition) {
     recognition = new SpeechRecognition();
     recognition.continuous = false;
-    recognition.lang = 'en-US';
     recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+        isListening = true;
+        const btn = document.getElementById('micBtn');
+        if (btn) {
+            btn.style.color = 'var(--accent-primary)';
+            btn.style.opacity = '1';
+        }
+    };
 
     recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+        }
+        
         const input = document.getElementById('destinationInput');
-        if (input) {
-            input.value = transcript;
+        if (input && transcript.trim()) {
+            input.value = transcript.trim();
             handleSearch();
         }
     };
 
     recognition.onerror = (event) => {
-        console.error('Speech recognition error', event.error);
-        alert('Voice input failed. Please try again.');
+        console.error('Speech recognition error:', event.error);
+        isListening = false;
+        const btn = document.getElementById('micBtn');
+        if (btn) btn.style.color = 'var(--text-tertiary)';
+    };
+
+    recognition.onend = () => {
+        isListening = false;
+        const btn = document.getElementById('micBtn');
+        if (btn) btn.style.color = 'var(--text-tertiary)';
     };
 }
 
 function toggleVoiceInput() {
     if (!recognition) {
-        alert('Voice input is not supported in this browser.');
+        alert('Voice input not supported in this browser. Use Chrome, Edge, or Safari.');
         return;
     }
 
     try {
-        recognition.start();
-        const btn = document.getElementById('micBtn');
-        if (btn) btn.style.color = 'var(--accent-primary)';
+        if (isListening) {
+            recognition.stop();
+            isListening = false;
+        } else {
+            recognition.start();
+        }
     } catch (e) {
-        recognition.stop();
+        console.error('Voice input error:', e);
+        isListening = false;
     }
 }
 
@@ -583,41 +541,54 @@ async function exportGuide(format) {
     }
     
     try {
-        const response = await API.post('/api/export', {
-            destination: state.destination,
-            language: 'en'
+        const url = `/api/export?format=${format}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                destination: state.destination,
+                language: 'en'
+            })
         });
         
-        if (response.status === 'success') {
-            alert(`Guide exported successfully as ${format.toUpperCase()}`);
+        if (response.ok) {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            
+            const ext = format === 'html' ? 'html' : format === 'markdown' ? 'md' : 'json';
+            link.download = `${state.destination}_guide.${ext}`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
         } else {
-            alert('Export failed: ' + response.message);
+            const error = await response.json();
+            alert('Export failed: ' + (error.detail || 'Unknown error'));
         }
     } catch (e) {
+        console.error('Export error:', e);
         alert('Export error: ' + e.message);
     }
 }
 
 function startStream(destination) {
     let completedAgents = 0;
-    const totalAgents = 16;
+    const totalAgents = 17;
     
     const eventSource = API.stream(
         `/api/stream?destination=${encodeURIComponent(destination)}&mother_tongue=en`,
         (data) => {
-            if (data.type === 'agent_start') {
-                addAgentStep(data.agent, 'working');
-            } else if (data.type === 'agent_complete') {
+            if (data.type === 'agent_complete') {
                 completedAgents++;
-                updateAgentStep(data.agent, 'completed');
+                addAgentStep(data.agent, 'completed');
                 updateProgress(completedAgents, totalAgents);
-            } else if (data.type === 'complete') {
-                eventSource.close();
-                if (data.context) {
-                    state.data = data.context;
-                    state.view = 'dashboard';
-                    renderView();
-                }
+            } else if (data.type === 'error') {
+                console.error('Agent error:', data.message);
             }
         },
         (error) => {

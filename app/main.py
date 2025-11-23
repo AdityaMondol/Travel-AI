@@ -6,6 +6,7 @@ Production-ready FastAPI implementation
 import json
 from typing import Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
 from app.core.logger import setup_logger
 from app.core.config import Config
 from app.core.llm_client import LLMClient
@@ -237,19 +238,35 @@ try:
 
     @app.get("/api/stream")
     async def stream_travel_plan(destination: str, mother_tongue: str = "en"):
-        from app.services.orchestrator import Orchestrator
-        orchestrator = Orchestrator(api_server.llm_client)
-        return StreamingResponse(
-            orchestrator.run_stream(destination, mother_tongue),
-            media_type="text/event-stream"
-        )
+        from app.services.orchestrator_langgraph import LangGraphOrchestrator
+        
+        async def event_generator():
+            orchestrator = LangGraphOrchestrator()
+            try:
+                async for event in orchestrator.run_stream(destination, mother_tongue):
+                    yield event
+            except Exception as e:
+                logger.error(f"Stream error: {e}")
+                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
     
     @app.post("/api/generate")
     async def generate_guide(request: GenerateRequest):
-        result = api_server.generate_travel_guide(request.destination, request.language)
-        if result["status"] == "error":
-            raise HTTPException(status_code=400, detail=result["message"])
-        return result
+        from app.services.orchestrator_langgraph import create_travel_plan_langgraph
+        try:
+            result = await create_travel_plan_langgraph(request.destination, request.language)
+            if "error" in result:
+                raise HTTPException(status_code=400, detail=result["error"])
+            return {
+                "status": "success",
+                "destination": request.destination,
+                "data": result,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Generate error: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
     
     @app.get("/api/guide/html")
     async def get_html(destination: str, language: str = "en"):
@@ -283,21 +300,63 @@ try:
             raise HTTPException(status_code=400, detail=str(e))
     
     @app.post("/api/export")
-    async def export_guide(request: GenerateRequest):
+    async def export_guide(request: GenerateRequest, format: str = "html"):
         from app.services.export_service import ExportService
         try:
             result = api_server.generate_travel_guide(request.destination, request.language)
             if result["status"] == "error":
                 raise HTTPException(status_code=400, detail=result["message"])
             
-            json_file = ExportService.export_json(result["data"], request.destination)
-            md_file = ExportService.export_markdown(result["data"], request.destination)
-            html_file = ExportService.export_html(result["data"], request.destination)
+            if format == "json":
+                export_result = ExportService.export_json(result["data"], request.destination)
+                if export_result["status"] == "success":
+                    return FileResponse(
+                        export_result["filename"],
+                        media_type="application/json",
+                        filename=f"{request.destination}_guide.json"
+                    )
+            elif format == "markdown":
+                export_result = ExportService.export_markdown(result["data"], request.destination)
+                if export_result["status"] == "success":
+                    return FileResponse(
+                        export_result["filename"],
+                        media_type="text/markdown",
+                        filename=f"{request.destination}_guide.md"
+                    )
+            elif format == "html":
+                export_result = ExportService.export_html(result["data"], request.destination)
+                if export_result["status"] == "success":
+                    return FileResponse(
+                        export_result["filename"],
+                        media_type="text/html",
+                        filename=f"{request.destination}_guide.html"
+                    )
             
-            return {
-                "status": "success",
-                "destination": request.destination,
-                "exports": {
+            raise HTTPException(status_code=400, detail="Invalid export format")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Export error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/api/export/download")
+    async def download_export(filename: str, format: str = "html"):
+        try:
+            filepath = f"output/{filename}"
+            if not Path(filepath).exists():
+                raise HTTPException(status_code=404, detail="File not found")
+            
+            media_type = "text/html" if format == "html" else "application/json" if format == "json" else "text/markdown"
+            return FileResponse(
+                filepath,
+                media_type=media_type,
+                filename=f"{filename}.{format}"
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Download error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
                     "json": json_file,
                     "markdown": md_file,
                     "html": html_file
