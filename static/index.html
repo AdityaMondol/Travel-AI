@@ -1,184 +1,269 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Primary Meta Tags -->
-    <title>TravelAI - AI-Powered Travel Planning & Personalized Itineraries</title>
-    <meta name="title" content="TravelAI - AI-Powered Travel Planning & Personalized Itineraries">
-    <meta name="description"
-        content="Plan your perfect journey with AI-powered travel recommendations. Get personalized itineraries, local insights, and comprehensive travel guides powered by advanced multi-agent AI technology.">
-    <meta name="keywords"
-        content="AI travel planning, travel itinerary generator, personalized travel guide, trip planner, AI travel assistant, vacation planning, travel recommendations">
-    <meta name="author" content="TravelAI">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://travelai.app">
-
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://travelai.app">
-    <meta property="og:title" content="TravelAI - AI-Powered Travel Planning">
-    <meta property="og:description"
-        content="Plan your perfect journey with AI-powered travel recommendations. Get personalized itineraries and comprehensive travel guides.">
-    <meta property="og:image" content="https://travelai.app/og-image.jpg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="TravelAI - AI-Powered Travel Planning Interface">
-    <meta property="og:site_name" content="TravelAI">
-    <meta property="og:locale" content="en_US">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://travelai.app">
-    <meta name="twitter:title" content="TravelAI - AI-Powered Travel Planning">
-    <meta name="twitter:description"
-        content="Plan your perfect journey with AI-powered travel recommendations and personalized itineraries.">
-    <meta name="twitter:image" content="https://travelai.app/twitter-card.jpg">
-    <meta name="twitter:image:alt" content="TravelAI Interface Screenshot">
-    <meta name="twitter:creator" content="@travelai">
-
-    <!-- Favicon & App Icons -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3b82f6">
-
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#09090b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="TravelAI">
-    <meta name="application-name" content="TravelAI">
-    <meta name="msapplication-TileColor" content="#3b82f6">
-    <meta name="msapplication-config" content="/browserconfig.xml">
-
-    <!-- Security -->
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
-
-    <!-- Preconnect for performance -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
-    <link rel="dns-prefetch" href="https://unpkg.com">
-
-    <!-- Fonts with optimized loading -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Tailwind CSS -->
+    <title>Leonore AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        
+        body {
+            background: #0f0f0f;
+            color: #e5e5e5;
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #a78bfa, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #a78bfa, #ec4899);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(167, 139, 250, 0.3);
+        }
+        
+        .message-user {
+            background: rgba(167, 139, 250, 0.15);
+            border-left: 2px solid #a78bfa;
+        }
+        
+        .message-assistant {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 2px solid #ec4899;
+        }
+        
+        .input-field {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #a78bfa;
+            outline: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #a78bfa;
+        }
+        
+        pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+            color: #e5e5e5;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- Header -->
+    <header class="glass border-b border-white/10 px-6 py-4">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500"></div>
+                <h1 class="text-xl font-semibold gradient-text">Leonore</h1>
+            </div>
+            <div id="status" class="text-xs text-gray-400">Connecting...</div>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="flex-1 flex overflow-hidden">
+        <!-- Chat -->
+        <div class="flex-1 flex flex-col">
+            <!-- Messages -->
+            <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-4">
+                <div class="text-center text-gray-500 py-12">
+                    <p class="text-sm">Start a conversation</p>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="glass border-t border-white/10 p-6">
+                <div class="max-w-4xl mx-auto">
+                    <form id="form" class="flex gap-3">
+                        <input 
+                            id="input" 
+                            type="text" 
+                            placeholder="Message..." 
+                            class="input-field flex-1 px-4 py-3 rounded-lg text-sm"
+                            autocomplete="off"
+                        />
+                        <button 
+                            type="submit" 
+                            class="btn-primary text-white px-6 py-3 rounded-lg font-medium text-sm"
+                        >
+                            Send
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="w-64 glass border-l border-white/10 flex flex-col">
+            <div class="p-4 border-b border-white/10">
+                <button id="newChat" class="w-full btn-primary text-white py-2 px-4 rounded-lg font-medium text-sm">
+                    New Chat
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4 space-y-2">
+                <div id="history" class="space-y-1">
+                    <!-- History items -->
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-white/10 space-y-2 text-xs">
+                <div class="glass p-3 rounded-lg">
+                    <p class="text-gray-400">Agents</p>
+                    <p class="text-lg font-semibold gradient-text" id="agentCount">0</p>
+                </div>
+                <div class="glass p-3 rounded-lg">
+                    <p class="text-gray-400">Memory</p>
+                    <p class="text-lg font-semibold gradient-text" id="memoryCount">0</p>
+                </div>
+            </div>
+        </aside>
+    </main>
+
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    }
+        const API = '/api';
+        let sessionId = localStorage.getItem('sessionId') || 'session_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('sessionId', sessionId);
+
+        const form = document.getElementById('form');
+        const input = document.getElementById('input');
+        const messages = document.getElementById('messages');
+        const newChat = document.getElementById('newChat');
+        const status = document.getElementById('status');
+
+        // Clear initial message on first input
+        let firstMessage = true;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = input.value.trim();
+            if (!text) return;
+
+            if (firstMessage) {
+                messages.innerHTML = '';
+                firstMessage = false;
+            }
+
+            input.value = '';
+            addMessage('user', text);
+            const msgEl = addMessage('assistant', 'Processing...');
+
+            try {
+                const response = await fetch(`${API}/chat/simple`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId, message: text })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'API error');
                 }
+
+                const data = await response.json();
+                msgEl.innerHTML = marked.parse(data.response || 'No response');
+            } catch (error) {
+                msgEl.innerHTML = `<span style="color: #ef4444;">Error: ${error.message}</span>`;
+            }
+
+            updateStatus();
+        });
+
+        function addMessage(role, content) {
+            const div = document.createElement('div');
+            div.className = `fade-in p-4 rounded-lg ${
+                role === 'user' ? 'message-user ml-auto max-w-2xl' :
+                role === 'error' ? 'bg-red-900/20 border-l-2 border-red-500 max-w-2xl' :
+                'message-assistant max-w-2xl'
+            }`;
+            
+            if (role === 'assistant') {
+                div.innerHTML = marked.parse(content);
+            } else {
+                div.textContent = content;
+            }
+            
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+            return div;
+        }
+
+        newChat.addEventListener('click', () => {
+            sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('sessionId', sessionId);
+            messages.innerHTML = '<div class="text-center text-gray-500 py-12"><p class="text-sm">Start a conversation</p></div>';
+            firstMessage = true;
+        });
+
+        async function updateStatus() {
+            try {
+                const res = await fetch(`${API}/health`);
+                const data = await res.json();
+                status.textContent = '● Online';
+                status.className = 'text-xs text-green-400';
+                
+                document.getElementById('agentCount').textContent = data.agents_active || 0;
+                document.getElementById('memoryCount').textContent = data.memory_stats?.total_memories || 0;
+            } catch (e) {
+                status.textContent = '● Offline';
+                status.className = 'text-xs text-red-400';
             }
         }
-    </script>
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="/css/style.css?v=5">
-
-    <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "TravelAI",
-        "description": "AI-Powered Travel Planning and Personalized Itinerary Generator",
-        "url": "https://travelai.app",
-        "applicationCategory": "TravelApplication",
-        "operatingSystem": "Any",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
-        },
-        "author": {
-            "@type": "Organization",
-            "name": "TravelAI",
-            "url": "https://travelai.app"
-        },
-        "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.8",
-            "ratingCount": "1247"
-        }
-    }
-    </script>
-</head>
-
-<body>
-    <!-- Skip to main content for accessibility -->
-    <a href="#main-content"
-        class="skip-link sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--accent-primary)] focus:text-white focus:rounded-lg focus:font-medium">
-        Skip to main content
-    </a>
-
-    <!-- Main Application Container -->
-    <div id="app" role="main" aria-label="Main application content"></div>
-
-    <!-- API Configuration -->
-    <script>
-        window.API_CONFIG = {
-            baseURL: window.location.origin,
-            endpoints: {
-                generate: '/api/generate',
-                stream: '/api/stream',
-                languages: '/api/languages',
-                health: '/health',
-                analytics: '/api/analytics',
-                recommendations: '/api/recommendations',
-                export: '/api/export',
-                search: '/api/search',
-                favorites: '/api/favorites/add',
-                itinerary: '/api/itinerary/create',
-                notifications: '/api/notifications',
-                performance: '/api/performance',
-                auth: {
-                    login: '/auth/login',
-                    logout: '/auth/logout',
-                    user: '/auth/user',
-                    callback: '/auth/callback'
-                }
-            },
-            timeout: 30000,
-            retries: 3
-        };
-    </script>
-
-    <!-- API Client -->
-    <script src="/js/api-client.js?v=1"></script>
-    
-    <!-- Main Application Scripts -->
-    <script src="/js/utils.js?v=5"></script>
-    <script src="/js/app.js?v=5"></script>
-
-    <!-- Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function () {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(function (registration) {
-                        logger.info('ServiceWorker registered:', registration.scope);
-                    })
-                    .catch(function (err) {
-                        logger.warn('ServiceWorker registration failed:', err);
-                    });
-            });
-        }
+        updateStatus();
+        setInterval(updateStatus, 10000);
     </script>
 </body>
-
 </html>

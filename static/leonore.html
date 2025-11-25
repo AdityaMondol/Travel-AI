@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leonore AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="container mx-auto p-4">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-blue-400">Leonore AI</h1>
+            <p class="text-gray-400">Multi-Agent AI System</p>
+        </header>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2">
+                <div class="bg-gray-800 rounded-lg p-6 mb-4">
+                    <h2 class="text-2xl font-bold mb-4">Task Input</h2>
+                    <textarea id="taskInput" class="w-full h-32 bg-gray-700 text-white p-4 rounded" placeholder="Enter your task..."></textarea>
+                    <button onclick="executeTask()" class="mt-4 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded">Execute</button>
+                    <button onclick="clearOutput()" class="mt-4 bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded ml-2">Clear</button>
+                </div>
+                
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h2 class="text-2xl font-bold mb-4">Output</h2>
+                    <div id="output" class="bg-gray-700 p-4 rounded min-h-96 max-h-screen overflow-y-auto"></div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="bg-gray-800 rounded-lg p-6 mb-4">
+                    <h2 class="text-xl font-bold mb-4">System Status</h2>
+                    <div id="status" class="text-sm"></div>
+                    <button onclick="refreshStatus()" class="mt-4 bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm">Refresh</button>
+                </div>
+                
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h2 class="text-xl font-bold mb-4">Agent Pool</h2>
+                    <div id="agents" class="text-sm"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function executeTask() {
+            const task = document.getElementById('taskInput').value;
+            if (!task) return;
+            
+            const output = document.getElementById('output');
+            output.innerHTML = '<div class="text-yellow-400">Processing...</div>';
+            
+            try {
+                const response = await fetch('/leonore/execute', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({task, context: {}})
+                });
+                
+                const result = await response.json();
+                displayResult(result);
+                refreshStatus();
+            } catch (error) {
+                output.innerHTML = `<div class="text-red-400">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function displayResult(result) {
+            const output = document.getElementById('output');
+            let html = '<div class="space-y-4">';
+            
+            if (result.synthesis) {
+                html += `<div class="border-l-4 border-blue-500 pl-4">
+                    <h3 class="font-bold text-blue-400">Synthesis</h3>
+                    <div class="prose prose-invert">${marked.parse(result.synthesis)}</div>
+                </div>`;
+            }
+            
+            if (result.results) {
+                html += '<div class="mt-4"><h3 class="font-bold text-green-400">Agent Results</h3>';
+                result.results.forEach(r => {
+                    html += `<div class="mt-2 p-3 bg-gray-600 rounded">
+                        <div class="font-semibold">${r.agent} (${r.role})</div>
+                        <div class="text-sm text-gray-300">${r.result || r.error}</div>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            output.innerHTML = html;
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise([output]);
+            }
+        }
+        
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/leonore/status');
+                const status = await response.json();
+                
+                document.getElementById('status').innerHTML = `
+                    <div class="space-y-2">
+                        <div>State: <span class="text-green-400">${status.orchestrator.state}</span></div>
+                        <div>Total Agents: <span class="text-blue-400">${status.total_agents}</span></div>
+                        <div>Tasks Completed: <span class="text-purple-400">${status.orchestrator.metrics.tasks_completed}</span></div>
+                    </div>
+                `;
+                
+                let agentsHtml = '<div class="space-y-2">';
+                for (const [role, agent] of Object.entries(status.agent_pool)) {
+                    agentsHtml += `<div class="p-2 bg-gray-700 rounded">
+                        <div class="font-semibold">${agent.name}</div>
+                        <div class="text-xs text-gray-400">${agent.state}</div>
+                    </div>`;
+                }
+                agentsHtml += '</div>';
+                document.getElementById('agents').innerHTML = agentsHtml;
+            } catch (error) {
+                console.error('Status refresh error:', error);
+            }
+        }
+        
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+            document.getElementById('taskInput').value = '';
+        }
+        
+        refreshStatus();
+        setInterval(refreshStatus, 5000);
+    </script>
+</body>
+</html>

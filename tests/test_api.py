@@ -1,39 +1,55 @@
+"""API tests"""
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
 client = TestClient(app)
 
-def test_read_root():
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-
 def test_health_check():
-    response = client.get("/health")
+    """Test health check endpoint"""
+    response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert data["service"] == "Leonore AI"
 
-def test_get_languages():
-    response = client.get("/api/languages")
-    assert response.status_code == 200
-    assert "languages" in response.json()
-    assert len(response.json()["languages"]) > 0
-
-def test_generate_guide_missing_destination():
-    response = client.post("/api/generate", json={})
-    assert response.status_code == 422
-
-def test_generate_guide_mock(mocker):
-    # Mock the APIServer.generate_travel_guide method
-    mocker.patch("app.main.api_server.generate_travel_guide", return_value={
-        "status": "success",
-        "destination": "Test City",
-        "data": {"test": "data"},
-        "timestamp": "2025-01-01T00:00:00"
+def test_chat_invalid_request():
+    """Test chat with invalid request"""
+    response = client.post("/api/chat", json={
+        "session_id": "",
+        "message": ""
     })
-    
-    response = client.post("/api/generate", json={"destination": "Test City"})
+    assert response.status_code == 422  # Validation error
+
+def test_chat_valid_request():
+    """Test chat with valid request"""
+    response = client.post("/api/chat", json={
+        "session_id": "test_session",
+        "message": "Hello"
+    })
     assert response.status_code == 200
-    assert response.json()["status"] == "success"
-    assert response.json()["destination"] == "Test City"
+    assert response.headers["content-type"] == "text/event-stream"
+
+def test_agents_endpoint():
+    """Test agents endpoint"""
+    response = client.get("/api/agents")
+    assert response.status_code == 200
+    data = response.json()
+    assert "orchestrator" in data
+    assert "agent_pool" in data
+
+def test_memory_endpoint():
+    """Test memory endpoint"""
+    response = client.get("/api/memory")
+    assert response.status_code == 200
+    data = response.json()
+    assert "results" in data
+    assert "count" in data
+
+def test_memory_search():
+    """Test memory search"""
+    response = client.get("/api/memory?query=test&limit=5")
+    assert response.status_code == 200
+    data = response.json()
+    assert "results" in data
+    assert data["count"] <= 5

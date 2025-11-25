@@ -1,744 +1,365 @@
-// Application State
-const state = {
-    view: 'landing',
-    destination: '',
-    data: null,
-    loading: false,
-    theme: localStorage.getItem('theme') || 'dark',
-    user: null,
-    apiConfig: window.API_CONFIG || {}
-};
-
-// DOM Reference
-const app = document.getElementById('app');
-
-// Use global API client
-const API = apiClient;
-
-// Initialize App
-document.addEventListener('DOMContentLoaded', () => {
-    applyTheme(state.theme);
-    checkUserAuth();
-    renderView();
-    lucide.createIcons();
-});
-
-// Theme Management
-const themes = {
-    dark: { name: 'Dark', icon: 'moon' },
-    light: { name: 'Light', icon: 'sun' },
-    ocean: { name: 'Ocean', icon: 'waves' },
-    sunset: { name: 'Sunset', icon: 'sunset' },
-    forest: { name: 'Forest', icon: 'trees' }
-};
-
-function applyTheme(themeName) {
-    document.documentElement.setAttribute('data-theme', themeName);
-    state.theme = themeName;
-    localStorage.setItem('theme', themeName);
-}
-
-function toggleThemeSwitcher() {
-    const switcher = document.getElementById('themeSwitcherPanel');
-    if (switcher) {
-        switcher.classList.toggle('hidden');
-    }
-}
-
-function renderThemeSwitcher() {
-    return `
-        <div class="theme-switcher">
-            <button class="theme-trigger" onclick="toggleThemeSwitcher()" title="Change Theme">
-                <i data-lucide="palette" style="width: 20px; height: 20px;"></i>
-            </button>
-            
-            <div id="themeSwitcherPanel" class="theme-panel hidden">
-                <div class="theme-panel-header">
-                    <span>Theme</span>
-                    <button class="theme-close" onclick="toggleThemeSwitcher()">
-                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
-                    </button>
-                </div>
-                <div class="theme-grid">
-                    ${Object.keys(themes).map(themeKey => `
-                        <button class="theme-option ${state.theme === themeKey ? 'active' : ''}" onclick="changeTheme('${themeKey}')">
-                            <div class="theme-preview"></div>
-                            <div class="theme-info">
-                                <i data-lucide="${themes[themeKey].icon}" style="width: 14px; height: 14px;"></i>
-                                <span>${themes[themeKey].name}</span>
-                            </div>
-                            ${state.theme === themeKey ? `<div class="theme-check"><i data-lucide="check" style="width: 12px; height: 12px;"></i></div>` : ''}
-                        </button>
-                    `).join('')}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function changeTheme(themeName) {
-    applyTheme(themeName);
-    renderView();
-    setTimeout(() => lucide.createIcons(), 100);
-}
-
-// Router
-function renderView() {
-    switch (state.view) {
-        case 'landing':
-            renderLanding();
-            break;
-        case 'loading':
-            renderLoading();
-            break;
-        case 'dashboard':
-            renderDashboard();
-            break;
-        default:
-            renderLanding();
-    }
-    lucide.createIcons();
-}
-
-// Voice Interaction
-const synth = window.speechSynthesis;
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition;
-let isListening = false;
-
-if (SpeechRecognition) {
-    recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-        isListening = true;
-        const btn = document.getElementById('micBtn');
-        if (btn) {
-            btn.style.color = 'var(--accent-primary)';
-            btn.style.opacity = '1';
-        }
-    };
-
-    recognition.onresult = (event) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
-        }
-        
-        const input = document.getElementById('destinationInput');
-        if (input && transcript.trim()) {
-            input.value = transcript.trim();
-            handleSearch();
-        }
-    };
-
-    recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        isListening = false;
-        const btn = document.getElementById('micBtn');
-        if (btn) btn.style.color = 'var(--text-tertiary)';
-    };
-
-    recognition.onend = () => {
-        isListening = false;
-        const btn = document.getElementById('micBtn');
-        if (btn) btn.style.color = 'var(--text-tertiary)';
-    };
-}
-
-function toggleVoiceInput() {
-    if (!recognition) {
-        alert('Voice input not supported in this browser. Use Chrome, Edge, or Safari.');
-        return;
+class LeonoreAI {
+    constructor() {
+        this.sessionId = this.generateId();
+        this.messages = [];
+        this.agents = new Map();
+        this.isDark = true;
+        this.isStreaming = false;
+        this.init();
     }
 
-    try {
-        if (isListening) {
-            recognition.stop();
-            isListening = false;
-        } else {
-            recognition.start();
-        }
-    } catch (e) {
-        console.error('Voice input error:', e);
-        isListening = false;
-    }
-}
-
-function speakText(text) {
-    if (synth.speaking) {
-        synth.cancel();
-        return;
+    generateId() {
+        return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    synth.speak(utterance);
-}
+    init() {
+        this.chatContainer = document.getElementById('chatContainer');
+        this.messageInput = document.getElementById('messageInput');
+        this.sendBtn = document.getElementById('sendBtn');
+        this.agentList = document.getElementById('agentList');
+        this.thoughtStream = document.getElementById('thoughtStream');
+        this.thoughtPanel = document.getElementById('thoughtPanel');
+        this.fileInput = document.getElementById('fileInput');
 
-// Landing Page
-function renderLanding() {
-    app.innerHTML = `
-        <div class="bg-animated">
-            <div class="bg-orb bg-orb-1"></div>
-            <div class="bg-orb bg-orb-2"></div>
-        </div>
-
-        <div style="min-height: 100vh; display: flex; flex-direction: column;">
-            <!-- Header -->
-            <header style="border-bottom: 1px solid var(--border-primary); padding: 16px 0; position: relative; z-index: 10;">
-                <div style="max-width: 1280px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center;">
-                            <i data-lucide="globe" style="width: 18px; height: 18px; color: white;"></i>
-                        </div>
-                        <span style="font-size: 18px; font-weight: 600; letter-spacing: -0.5px;">TravelAI</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <button onclick="showAbout()" class="btn btn-ghost" style="font-size: 14px;">
-                            <i data-lucide="info" style="width: 16px; height: 16px;"></i>
-                            About
-                        </button>
-                        <button id="userMenuBtn" onclick="toggleUserMenu()" class="btn btn-ghost" style="font-size: 14px;">
-                            <i data-lucide="user" style="width: 16px; height: 16px;"></i>
-                            <span id="userNameDisplay">Account</span>
-                        </button>
-                    </div>
-                </div>
-                <!-- User Menu Dropdown -->
-                <div id="userMenuDropdown" class="hidden" style="position: absolute; top: 56px; right: 24px; width: 200px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 50; overflow: hidden;">
-                    <button onclick="loginWithGoogle()" style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: transparent; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: background 0.2s;">
-                        <i data-lucide="log-in" style="width: 16px; height: 16px;"></i>
-                        Login with Google
-                    </button>
-                    <button id="logoutBtn" onclick="logoutUser()" style="width: 100%; text-align: left; padding: 12px 16px; border: none; background: transparent; color: var(--text-primary); cursor: pointer; display: none; align-items: center; gap: 8px; font-size: 14px; transition: background 0.2s;">
-                        <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
-                        Logout
-                    </button>
-                </div>
-            </header>
-
-            <!-- Main Content -->
-            <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 24px;">
-                <div style="width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 48px;">
-                    
-                    <!-- Hero Section -->
-                    <div style="text-align: center; display: flex; flex-direction: column; gap: 24px; animation: fadeIn 0.6s ease-out;">
-                        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 6px; width: fit-content; margin: 0 auto; font-size: 13px; font-weight: 500; color: var(--text-secondary);">
-                            <i data-lucide="cpu" style="width: 14px; height: 14px;"></i>
-                            Powered by AI
-                        </div>
-                        
-                        <h1 style="font-size: 56px; font-weight: 700; line-height: 1.2; letter-spacing: -1px; margin: 0;">
-                            <span class="gradient-text">Plan your perfect journey</span>
-                        </h1>
-                        
-                        <p style="font-size: 18px; color: var(--text-secondary); margin: 0; max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.6;">
-                            Get AI-powered travel recommendations tailored to your style and budget
-                        </p>
-                    </div>
-
-                    <!-- Search Section -->
-                    <div style="display: flex; flex-direction: column; gap: 16px; animation: fadeIn 0.6s ease-out 0.1s both;">
-                        <div style="position: relative;">
-                            <div style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); pointer-events: none;">
-                                <i data-lucide="search" style="width: 18px; height: 18px; color: var(--text-tertiary);"></i>
-                            </div>
-                            <input
-                                type="text"
-                                id="destinationInput"
-                                placeholder="Where do you want to go?"
-                                class="input-field"
-                                style="width: 100%; padding: 14px 16px 14px 44px; font-size: 16px;"
-                                onkeypress="handleSearchEnter(event)"
-                                autofocus
-                            />
-                            <button 
-                                id="micBtn"
-                                onclick="toggleVoiceInput()"
-                                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 4px; transition: color 0.2s;"
-                                title="Voice Search"
-                            >
-                                <i data-lucide="mic" style="width: 18px; height: 18px;"></i>
-                            </button>
-                        </div>
-                        
-                        <button
-                            type="button"
-                            onclick="handleSearch(event)"
-                            class="btn btn-primary"
-                            style="width: 100%; padding: 14px 24px; font-size: 16px; font-weight: 600;"
-                        >
-                            Generate Guide
-                            <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
-                        </button>
-                    </div>
-
-                    <!-- Popular Destinations -->
-                    <div style="display: flex; flex-direction: column; gap: 12px; animation: fadeIn 0.6s ease-out 0.2s both;">
-                        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500; margin: 0;">Popular destinations</p>
-                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                            ${['Tokyo', 'Paris', 'New York', 'Dubai', 'Bali', 'Barcelona'].map((city, i) => `
-                                <button
-                                    onclick="setDestination('${city}')"
-                                    class="badge"
-                                    style="font-size: 13px; animation: fadeIn 0.4s ease-out ${0.3 + (i * 0.05)}s both;"
-                                >
-                                    ${city}
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            <!-- Footer -->
-            <footer style="border-top: 1px solid var(--border-primary); padding: 24px; text-align: center; color: var(--text-tertiary); font-size: 13px;">
-                © 2025 TravelAI. Crafted with care.
-            </footer>
-        </div>
-
-        ${renderThemeSwitcher()}
-    `;
-}
-
-// Loading Page
-function renderLoading() {
-    app.innerHTML = `
-        <div class="bg-animated">
-            <div class="bg-orb bg-orb-1"></div>
-            <div class="bg-orb bg-orb-2"></div>
-        </div>
-
-        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;">
-            <div style="width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 32px;">
-                <div style="text-align: center; display: flex; flex-direction: column; gap: 16px;">
-                    <h1 style="font-size: 32px; font-weight: 700; margin: 0;">Generating your guide</h1>
-                    <p style="color: var(--text-secondary); margin: 0;">Our AI agents are working on your travel plan...</p>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-tertiary);">
-                        <span>Progress</span>
-                        <span id="progressPercent">0%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div style="width: 0%; height: 100%;"></div>
-                    </div>
-                </div>
-
-                <div style="text-align: center;">
-                    <p id="loadingStatus" style="color: var(--text-secondary); margin: 0; font-size: 14px;">Initializing...</p>
-                </div>
-
-                <div id="loadingSteps" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto;"></div>
-
-                <button onclick="goBack()" class="btn btn-secondary" style="width: 100%; padding: 12px 24px;">
-                    Cancel
-                </button>
-            </div>
-        </div>
-
-        ${renderThemeSwitcher()}
-    `;
-}
-
-// Dashboard Page
-function renderDashboard() {
-    const data = state.data || {};
-    const destination = data.destination || state.destination;
-    const places = data.places?.places || [];
-    const itinerary = data.itinerary?.three_days || [];
-    const dishes = data.food?.must_try_dishes || [];
-
-    app.innerHTML = `
-        <div class="bg-animated">
-            <div class="bg-orb bg-orb-1"></div>
-            <div class="bg-orb bg-orb-2"></div>
-        </div>
-
-        <div style="min-height: 100vh;">
-            <!-- Header -->
-            <header style="border-bottom: 1px solid var(--border-primary); padding: 16px 0; position: sticky; top: 0; z-index: 10; background: var(--bg-primary);">
-                <div style="max-width: 1280px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <button onclick="goBack()" class="btn btn-ghost" style="padding: 8px;">
-                            <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
-                        </button>
-                        <div>
-                            <h1 style="font-size: 20px; font-weight: 600; margin: 0;">${destination}</h1>
-                            <p style="font-size: 13px; color: var(--text-tertiary); margin: 0;">Your travel guide</p>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button onclick="speakText('Here is your travel guide for ${destination}')" class="btn btn-ghost" title="Read Aloud">
-                            <i data-lucide="volume-2" style="width: 18px; height: 18px;"></i>
-                        </button>
-                        <button onclick="exportGuide('html')" class="btn btn-secondary" style="font-size: 14px;">
-                            <i data-lucide="download" style="width: 16px; height: 16px;"></i>
-                            Export
-                        </button>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Main Content -->
-            <main style="max-width: 1280px; margin: 0 auto; padding: 48px 24px; display: flex; flex-direction: column; gap: 48px;">
-                
-                <!-- Places Section -->
-                ${places.length > 0 ? `
-                <section style="animation: fadeIn 0.6s ease-out;">
-                    <div style="margin-bottom: 24px;">
-                        <h2 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">Top Places</h2>
-                        <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">Must-visit destinations</p>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                        ${places.slice(0, 6).map((place, i) => `
-                            <div class="card" style="overflow: hidden; animation: fadeIn 0.6s ease-out ${0.1 + (i * 0.05)}s both;">
-                                <div class="image-zoom" style="height: 200px;">
-                                    <img src="${place.image_url}" alt="${place.name}" onerror="this.src='https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop'" />
-                                </div>
-                                <div style="padding: 16px;">
-                                    <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">${place.name}</h3>
-                                    <p style="font-size: 14px; color: var(--text-secondary); margin: 0; line-height: 1.5;">${place.description || 'A must-visit destination'}</p>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </section>
-                ` : ''}
-
-                <!-- Itinerary Section -->
-                ${itinerary.length > 0 ? `
-                <section style="animation: fadeIn 0.6s ease-out 0.1s both;">
-                    <div style="margin-bottom: 24px;">
-                        <h2 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">3-Day Itinerary</h2>
-                        <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">Your perfect travel plan</p>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 16px;">
-                        ${itinerary.map((day, index) => `
-                            <div class="card" style="padding: 24px; animation: fadeIn 0.6s ease-out ${0.2 + (index * 0.1)}s both;">
-                                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 16px;">
-                                        ${day.day || index + 1}
-                                    </div>
-                                    <div>
-                                        <h3 style="font-size: 16px; font-weight: 600; margin: 0;">Day ${day.day || index + 1}</h3>
-                                        <p style="font-size: 13px; color: var(--text-tertiary); margin: 0;">${(day.activities || []).length} activities</p>
-                                    </div>
-                                </div>
-                                <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-                                    ${(day.activities || []).map(activity => `
-                                        <li style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--text-secondary);">
-                                            <i data-lucide="check-circle" style="width: 16px; height: 16px; color: var(--accent-primary); flex-shrink: 0; margin-top: 2px;"></i>
-                                            <span>${activity}</span>
-                                        </li>
-                                    `).join('')}
-                                </ul>
-                            </div>
-                        `).join('')}
-                    </div>
-                </section>
-                ` : ''}
-
-                <!-- Food Section -->
-                ${dishes.length > 0 ? `
-                <section style="animation: fadeIn 0.6s ease-out 0.2s both;">
-                    <div style="margin-bottom: 24px;">
-                        <h2 style="font-size: 28px; font-weight: 700; margin: 0 0 8px 0;">Must-Try Dishes</h2>
-                        <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">Local culinary experiences</p>
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        ${dishes.map((dish, i) => `
-                            <span class="badge" style="animation: fadeIn 0.4s ease-out ${0.3 + (i * 0.05)}s both;">
-                                ${dish}
-                            </span>
-                        `).join('')}
-                    </div>
-                </section>
-                ` : ''}
-
-            </main>
-        </div>
-
-        ${renderThemeSwitcher()}
-    `;
-}
-
-// Event Handlers
-function handleSearchEnter(event) {
-    if (event.key === 'Enter') {
-        handleSearch();
-    }
-}
-
-function handleSearch(event) {
-    if (event) event.preventDefault();
-
-    const input = document.getElementById('destinationInput');
-    const destination = input?.value.trim();
-
-    if (!destination) {
-        input?.focus();
-        return;
-    }
-
-    state.destination = destination;
-    state.view = 'loading';
-    renderView();
-    startStream(destination);
-}
-
-function setDestination(city) {
-    const input = document.getElementById('destinationInput');
-    if (input) {
-        input.value = city;
-        handleSearch();
-    }
-}
-
-function goBack() {
-    state.view = 'landing';
-    state.data = null;
-    renderView();
-}
-
-function toggleUserMenu() {
-    const dropdown = document.getElementById('userMenuDropdown');
-    if (dropdown) {
-        dropdown.classList.toggle('hidden');
-    }
-}
-
-function loginWithGoogle() {
-    window.location.href = '/auth/login';
-}
-
-function logoutUser() {
-    window.location.href = '/auth/logout';
-}
-
-async function checkUserAuth() {
-    try {
-        const response = await fetch('/auth/user');
-        const user = await response.json();
-        if (user.authenticated && user.name) {
-            document.getElementById('userNameDisplay').textContent = user.name;
-            document.getElementById('logoutBtn').style.display = 'flex';
-        }
-    } catch (e) {
-        console.log('User not authenticated');
-    }
-}
-
-async function exportGuide(format) {
-    if (!state.data) {
-        alert('No guide data available');
-        return;
-    }
-    
-    try {
-        const url = `/api/export?format=${format}`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                destination: state.destination,
-                language: 'en'
-            })
-        });
-        
-        if (response.ok) {
-            const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            
-            const ext = format === 'html' ? 'html' : format === 'markdown' ? 'md' : 'json';
-            link.download = `${state.destination}_guide.${ext}`;
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(downloadUrl);
-        } else {
-            const error = await response.json();
-            alert('Export failed: ' + (error.detail || 'Unknown error'));
-        }
-    } catch (e) {
-        console.error('Export error:', e);
-        alert('Export error: ' + e.message);
-    }
-}
-
-function startStream(destination) {
-    let completedAgents = 0;
-    const totalAgents = 17;
-    
-    const eventSource = API.stream(
-        `/api/stream?destination=${encodeURIComponent(destination)}&mother_tongue=en`,
-        (data) => {
-            if (data.type === 'agent_complete') {
-                completedAgents++;
-                addAgentStep(data.agent, 'completed');
-                updateProgress(completedAgents, totalAgents);
-            } else if (data.type === 'error') {
-                console.error('Agent error:', data.message);
+        this.sendBtn.addEventListener('click', () => this.sendMessage());
+        this.messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
             }
-        },
-        (error) => {
+        });
+
+        document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
+        document.getElementById('voiceBtn').addEventListener('click', () => this.startVoiceInput());
+        document.getElementById('newChat').addEventListener('click', () => this.newChat());
+        document.getElementById('fileBtn').addEventListener('click', () => this.fileInput.click());
+        this.fileInput.addEventListener('change', (e) => this.handleFileUpload(e.target.files));
+
+        this.addMessage('system', '🚀 Leonore AI initialized. Multi-agent system ready.');
+        this.loadAgentStatus();
+        setInterval(() => this.loadAgentStatus(), 10000);
+    }
+
+    async sendMessage() {
+        const text = this.messageInput.value.trim();
+        if (!text || this.isStreaming) return;
+
+        this.addMessage('user', text);
+        this.messageInput.value = '';
+        this.messageInput.disabled = true;
+        this.sendBtn.disabled = true;
+        this.isStreaming = true;
+        this.thoughtPanel.classList.remove('hidden');
+
+        let assistantDiv = null;
+        let fullText = '';
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: this.sessionId,
+                    message: text
+                })
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    
+                    try {
+                        const data = JSON.parse(line.slice(6));
+                        
+                        switch (data.type) {
+                            case 'start':
+                                this.addThought('System', 'Processing request...');
+                                break;
+                            
+                            case 'agent_start':
+                                this.updateAgentStatus(data.data.agent, 'active');
+                                this.addThought(data.data.agent, 'Started working');
+                                break;
+                            
+                            case 'agent_thought':
+                                this.addThought(data.data.agent, data.data.thought);
+                                break;
+                            
+                            case 'agent_complete':
+                                this.updateAgentStatus(data.data.agent, 'idle');
+                                this.addThought(data.data.agent, '✓ Completed');
+                                break;
+                            
+                            case 'chunk':
+                                if (!assistantDiv) {
+                                    assistantDiv = this.addMessage('assistant', '', true);
+                                }
+                                fullText += data.data;
+                                this.updateMessage(assistantDiv, fullText);
+                                break;
+                            
+                            case 'complete':
+                                if (!assistantDiv) {
+                                    const result = data.data.synthesis || data.data.result || 'Task completed';
+                                    this.addMessage('assistant', result);
+                                } else {
+                                    this.finalizeMessage(assistantDiv, fullText);
+                                }
+                                this.addThought('System', '✓ Response complete');
+                                break;
+                            
+                            case 'error':
+                                this.addMessage('error', `Error: ${data.data.error || data.error || 'Unknown error'}`);
+                                break;
+                        }
+                    } catch (e) {
+                        console.error('Parse error:', e, line);
+                    }
+                }
+            }
+        } catch (error) {
             console.error('Stream error:', error);
-            alert('Connection lost. Please try again.');
-            goBack();
+            this.addMessage('error', `Connection error: ${error.message}`);
+        } finally {
+            this.isStreaming = false;
+            this.messageInput.disabled = false;
+            this.sendBtn.disabled = false;
+            this.messageInput.focus();
         }
-    );
-}
-
-function updateProgress(completed, total) {
-    const percentage = Math.round((completed / total) * 100);
-    const progressBar = document.querySelector('.progress-bar > div');
-    const progressPercent = document.getElementById('progressPercent');
-    
-    if (progressBar) {
-        progressBar.style.width = percentage + '%';
     }
-    if (progressPercent) {
-        progressPercent.textContent = percentage + '%';
+
+    addMessage(role, content, isStreaming = false) {
+        const div = document.createElement('div');
+        div.className = `chat-message p-4 rounded-lg ${
+            role === 'user' ? 'bg-blue-600 ml-auto max-w-2xl' :
+            role === 'assistant' ? 'bg-gray-800 max-w-4xl' :
+            role === 'system' ? 'bg-gray-700 text-center text-sm max-w-xl mx-auto' :
+            'bg-red-900 max-w-2xl'
+        }`;
+
+        if (role === 'assistant') {
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'markdown-body';
+            if (isStreaming) {
+                contentDiv.dataset.raw = content;
+                contentDiv.innerHTML = this.renderMarkdown(content);
+            } else {
+                contentDiv.innerHTML = this.renderMarkdown(content);
+            }
+            div.appendChild(contentDiv);
+        } else {
+            div.textContent = content;
+        }
+
+        this.chatContainer.appendChild(div);
+        this.scrollToBottom();
+        return div;
     }
-}
 
-function addAgentStep(agentName, status) {
-    const stepsEl = document.getElementById('loadingSteps');
-    if (!stepsEl) return;
-
-    const stepDiv = document.createElement('div');
-    stepDiv.id = `agent-${agentName}`;
-    stepDiv.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-primary);
-        border-radius: 8px;
-        border-left: 3px solid var(--accent-primary);
-        animation: slideIn 0.3s ease-out;
-    `;
-    stepDiv.innerHTML = `
-        <i data-lucide="loader-2" style="width: 16px; height: 16px; color: var(--accent-primary); animation: spin 1s linear infinite;"></i>
-        <div style="flex: 1;">
-            <p style="font-size: 13px; font-weight: 500; margin: 0; text-transform: capitalize;">${agentName}</p>
-            <p style="font-size: 12px; color: var(--text-tertiary); margin: 0;">Processing...</p>
-        </div>
-    `;
-    stepsEl.prepend(stepDiv);
-    lucide.createIcons();
-}
-
-function updateAgentStep(agentName, status) {
-    const stepDiv = document.getElementById(`agent-${agentName}`);
-    if (!stepDiv) return;
-
-    if (status === 'completed') {
-        stepDiv.style.borderLeftColor = 'var(--success)';
-        stepDiv.innerHTML = `
-            <i data-lucide="check-circle" style="width: 16px; height: 16px; color: var(--success);"></i>
-            <div style="flex: 1;">
-                <p style="font-size: 13px; font-weight: 500; margin: 0; text-transform: capitalize;">${agentName}</p>
-                <p style="font-size: 12px; color: var(--text-tertiary); margin: 0;">Completed</p>
-            </div>
-        `;
+    updateMessage(div, text) {
+        const contentDiv = div.querySelector('.markdown-body');
+        if (contentDiv) {
+            contentDiv.dataset.raw = text;
+            contentDiv.innerHTML = this.renderMarkdown(text);
+            this.scrollToBottom();
+        }
     }
-    lucide.createIcons();
-}
 
-function showAbout() {
-    const aboutModal = document.createElement('div');
-    aboutModal.id = 'aboutModal';
-    aboutModal.style.cssText = `
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        padding: 24px;
-        animation: fadeIn 0.3s ease-out;
-    `;
-    
-    aboutModal.innerHTML = `
-        <div class="card" style="max-width: 600px; max-height: 80vh; overflow-y: auto; padding: 32px; animation: scaleIn 0.3s ease-out;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="font-size: 24px; font-weight: 700; margin: 0;">About TravelAI</h2>
-                <button onclick="document.getElementById('aboutModal').remove()" class="btn btn-ghost" style="padding: 4px;">
-                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
-                </button>
-            </div>
+    finalizeMessage(div, text) {
+        const contentDiv = div.querySelector('.markdown-body');
+        if (contentDiv) {
+            contentDiv.innerHTML = this.renderMarkdown(text);
+            delete contentDiv.dataset.raw;
+        }
+    }
+
+    renderMarkdown(text) {
+        try {
+            return marked.parse(text || '');
+        } catch (e) {
+            return text || '';
+        }
+    }
+
+    addThought(agent, thought) {
+        const div = document.createElement('div');
+        div.className = 'p-3 bg-gray-700 rounded-lg text-sm border-l-4 border-blue-500';
+        
+        const agentSpan = document.createElement('div');
+        agentSpan.className = 'font-semibold text-blue-400 mb-1';
+        agentSpan.textContent = agent;
+        
+        const thoughtSpan = document.createElement('div');
+        thoughtSpan.className = 'text-gray-300';
+        thoughtSpan.textContent = thought;
+        
+        div.appendChild(agentSpan);
+        div.appendChild(thoughtSpan);
+        
+        this.thoughtStream.appendChild(div);
+        this.thoughtStream.scrollTop = this.thoughtStream.scrollHeight;
+
+        if (this.thoughtStream.children.length > 50) {
+            this.thoughtStream.removeChild(this.thoughtStream.firstChild);
+        }
+    }
+
+    updateAgentStatus(agentName, status) {
+        if (!this.agents.has(agentName)) {
+            const agentDiv = document.createElement('div');
+            agentDiv.className = 'p-3 bg-gray-700 rounded-lg';
+            agentDiv.dataset.agent = agentName;
             
-            <div style="display: flex; flex-direction: column; gap: 16px; font-size: 14px; line-height: 1.6; color: var(--text-secondary);">
-                <p style="margin: 0;">
-                    <strong>TravelAI</strong> is a production-ready, AI-powered travel planning platform that leverages a sophisticated multi-agent architecture to generate personalized, comprehensive travel guides with real-time streaming updates.
-                </p>
-                
-                <div>
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">Key Features</h3>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        <li>16+ specialized AI agents working in parallel</li>
-                        <li>Real-time streaming updates via Server-Sent Events</li>
-                        <li>Dynamic LLM support (Google Gemini, OpenRouter, NVIDIA NIM)</li>
-                        <li>Voice interaction with TTS and STT</li>
-                        <li>Premium UI with 5 stunning themes</li>
-                        <li>Progressive Web App with offline support</li>
-                        <li>Enterprise-grade security</li>
-                        <li>WCAG 2.2 AA accessibility</li>
-                    </ul>
+            agentDiv.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-medium">${agentName}</span>
+                    <span class="status-indicator w-2 h-2 rounded-full bg-gray-500"></span>
                 </div>
-                
-                <div>
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">Tech Stack</h3>
-                    <p style="margin: 0;">
-                        <strong>Backend:</strong> Python 3.11 + FastAPI + Uvicorn<br>
-                        <strong>Frontend:</strong> HTML5 + Vanilla JS + Tailwind CSS<br>
-                        <strong>AI/LLM:</strong> Google Gemini, OpenRouter, NVIDIA NIM<br>
-                        <strong>DevOps:</strong> Docker + Docker Compose
-                    </p>
-                </div>
-                
-                <div>
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">Capabilities</h3>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        <li>Generate comprehensive travel guides</li>
-                        <li>Personalized recommendations</li>
-                        <li>Multi-format export (JSON, Markdown, HTML)</li>
-                        <li>Advanced search and filtering</li>
-                        <li>Favorites and bookmarks</li>
-                        <li>Itinerary customization</li>
-                        <li>Real-time analytics</li>
-                    </ul>
-                </div>
-                
-                <div style="border-top: 1px solid var(--border-primary); padding-top: 16px; margin-top: 16px;">
-                    <p style="margin: 0; font-size: 12px; color: var(--text-tertiary);">
-                        © 2025 TravelAI. Made with ❤️ by the TravelAI Team.<br>
-                        <a href="https://github.com" style="color: var(--accent-primary); text-decoration: none;">GitHub</a> • 
-                        <a href="https://docs.example.com" style="color: var(--accent-primary); text-decoration: none;">Documentation</a>
-                    </p>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(aboutModal);
-    aboutModal.addEventListener('click', (e) => {
-        if (e.target === aboutModal) {
-            aboutModal.remove();
+                <div class="text-xs text-gray-400 mt-1">Idle</div>
+            `;
+            
+            this.agentList.appendChild(agentDiv);
+            this.agents.set(agentName, agentDiv);
         }
-    });
-    lucide.createIcons();
+
+        const agentDiv = this.agents.get(agentName);
+        const indicator = agentDiv.querySelector('.status-indicator');
+        const statusText = agentDiv.querySelector('.text-xs');
+
+        if (status === 'active') {
+            indicator.className = 'status-indicator w-2 h-2 rounded-full bg-green-500 agent-pulse';
+            statusText.textContent = 'Active';
+        } else {
+            indicator.className = 'status-indicator w-2 h-2 rounded-full bg-gray-500';
+            statusText.textContent = 'Idle';
+        }
+    }
+
+    async loadAgentStatus() {
+        try {
+            const response = await fetch('/api/agents');
+            const data = await response.json();
+            
+            if (data.agent_pool) {
+                Object.entries(data.agent_pool).forEach(([role, agent]) => {
+                    this.updateAgentStatus(agent.name || role, agent.state === 'executing' ? 'active' : 'idle');
+                });
+            }
+        } catch (e) {
+            console.error('Failed to load agent status:', e);
+        }
+    }
+
+    scrollToBottom() {
+        this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+    }
+
+    toggleTheme() {
+        this.isDark = !this.isDark;
+        document.body.classList.toggle('bg-gray-900', this.isDark);
+        document.body.classList.toggle('bg-white', !this.isDark);
+        document.body.classList.toggle('text-gray-100', this.isDark);
+        document.body.classList.toggle('text-gray-900', !this.isDark);
+        
+        const icon = document.getElementById('themeToggle');
+        icon.textContent = this.isDark ? '🌙' : '☀️';
+    }
+
+    startVoiceInput() {
+        if (!('webkitSpeechRecognition' in window)) {
+            this.addMessage('error', 'Voice input not supported in this browser');
+            return;
+        }
+
+        const recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+            document.getElementById('voiceBtn').textContent = '🔴';
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            this.messageInput.value = transcript;
+            document.getElementById('voiceBtn').textContent = '🎤';
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            document.getElementById('voiceBtn').textContent = '🎤';
+        };
+
+        recognition.onend = () => {
+            document.getElementById('voiceBtn').textContent = '🎤';
+        };
+
+        recognition.start();
+    }
+
+    async handleFileUpload(files) {
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('session_id', this.sessionId);
+
+            this.addMessage('system', `📎 Uploading ${file.name}...`);
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    this.addMessage('system', `✓ Uploaded ${file.name} (${this.formatBytes(data.size)})`);
+                } else {
+                    this.addMessage('error', `Failed to upload ${file.name}`);
+                }
+            } catch (error) {
+                this.addMessage('error', `Upload error: ${error.message}`);
+            }
+        }
+        
+        this.fileInput.value = '';
+    }
+
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    newChat() {
+        if (confirm('Start a new chat? Current conversation will be saved.')) {
+            this.sessionId = this.generateId();
+            this.messages = [];
+            this.chatContainer.innerHTML = '';
+            this.thoughtStream.innerHTML = '';
+            this.thoughtPanel.classList.add('hidden');
+            this.addMessage('system', '🚀 New chat started');
+        }
+    }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.leonoreApp = new LeonoreAI();
+});
