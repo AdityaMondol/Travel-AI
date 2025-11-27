@@ -1,82 +1,187 @@
-import secrets
-import requests
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import RedirectResponse, JSONResponse
-from app.core.config import settings
+"""Authentication and authorization"""
+from typing import Optional, Dict, List
+from datetime import datetime, timedelta
+from enum import Enum
+import jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
+from app.core.config import get_config
 from app.core.logger import setup_logger
+
 
 logger = setup_logger(__name__)
 
-router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.get("/login")
-async def login(request: Request):
-    """
-    Initiate Google OAuth login flow
-    Returns the authorization URL for the client to redirect to
-    """
-    if not settings.GOOGLE_CLIENT_ID:
-        return JSONResponse(
-            status_code=501,
-            content={
-                "status": "error",
-                "message": "Google OAuth not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env"
-            }
+class UserRole(str, Enum):
+    """User roles"""
+    ADMIN = "admin"
+    OPERATOR = "operator"
+    VIEWER = "viewer"
+    API = "api"
+
+
+class User(BaseModel):
+    """User model"""
+    id: str
+    username: str
+    email: str
+    role: UserRole
+    is_active: bool = True
+    quota_monthly_usd: float = 100.0
+    quota_used_usd: float = 0.0
+
+
+class APIKey(BaseModel):
+    """API key model"""
+    key_id: str
+    user_id: str
+    key_hash: str
+    created_at: datetime
+    last_used: Optional[datetime] = None
+    is_active: bool = True
+
+
+class AuthManager:
+    """Authentication and authorization manager"""
+    
+    def __init__(self):
+        self.config = get_config()
+        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.users: Dict[str, User] = {}
+        self.api_keys: Dict[str, APIKey] = {}
+    
+    def hash_password(self, password: str) -> str:
+        """Hash password"""
+        return self.pwd_context.hash(password)
+    
+    def verify_password(self, plain: str, hashed: str) -> bool:
+        """Verify password"""
+        return self.pwd_context.verify(plain, hashed)
+    
+    def create_access_token(self, user_id: str, expires_delta: Optional[timedelta] = None) -> str:
+        """Create JWT access token"""
+        if expires_delta is None:
+            expires_delta = timedelta(hours=self.config.jwt_expiration_hours)
+        
+        expire = datetime.utcnow() + expires_delta
+        
+        payload = {
+            "sub": user_id,
+            "exp": expire,
+            "iat": datetime.utcnow(),
+        }
+        
+        token = jwt.encode(
+            payload,
+            self.config.secret_key,
+            algorithm=self.config.jwt_algorithm
         )
+        
+        return token
     
-    # Generate state token for CSRF protection
-    state = secrets.token_urlsafe(32)
+    def verify_token(self, token: str) -> Optional[str]:
+        """Verify JWT token and return user_id"""
+        try:
+            payload = jwt.decode(
+                token,
+                self.config.secret_key,
+                algorithms=[self.config.jwt_algorithm]
+            )
+            user_id = payload.get("sub")
+            return user_id
+        except jwt.ExpiredSignatureError:
+            logger.warning("Token expired")
+            return None
+        except jwt.InvalidTokenError:
+            logger.warning("Invalid token")
+            return None
     
-    # Build authorization URL
-    auth_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={settings.GOOGLE_CLIENT_ID}&"
-        f"redirect_uri={settings.GOOGLE_REDIRECT_URI}&"
-        f"response_type=code&"
-        f"scope=openid email profile&"
-        f"state={state}"
-    )
+    def create_user(
+        self,
+        user_id: str,
+        username: str,
+        email: str,
+        role: UserRole = UserRole.VIEWER,
+        quota_monthly_usd: float = 100.0
+    ) -> User:
+        """Create user"""
+        user = User(
+            id=user_id,
+            username=username,
+            email=email,
+            role=role,
+            quota_monthly_usd=quota_monthly_usd
+        )
+        self.users[user_id] = user
+        logger.info(f"User created: {username}")
+        return user
     
-    return JSONResponse(content={
-        "status": "success",
-        "auth_url": auth_url,
-        "message": "Redirect to auth_url to complete login"
-    })
+    def get_user(self, user_id: str) -> Optional[User]:
+        """Get user"""
+        return self.users.get(user_id)
+    
+    def create_api_key(self, user_id: str) -> str:
+        """Create API key for user"""
+        import secrets
+        import hashlib
+        
+        key = secrets.token_urlsafe(32)
+        key_hash = hashlib.sha256(key.encode()).hexdigest()
+        
+        api_key = APIKey(
+            key_id=secrets.token_hex(8),
+            user_id=user_id,
+            key_hash=key_hash,
+            created_at=datetime.utcnow()
+        )
+        
+        self.api_keys[api_key.key_id] = api_key
+        logger.info(f"API key created for user: {user_id}")
+        
+        return key
+    
+    def verify_api_key(self, key: str) -> Optional[str]:
+        """Verify API key and return user_id"""
+        import hashlib
+        
+        key_hash = hashlib.sha256(key.encode()).hexdigest()
+        
+        for api_key in self.api_keys.values():
+            if api_key.key_hash == key_hash and api_key.is_active:
+                api_key.last_used = datetime.utcnow()
+                return api_key.user_id
+        
+        return None
+    
+    def check_quota(self, user_id: str, cost: float) -> bool:
+        """Check if user has quota for cost"""
+        user = self.get_user(user_id)
+        if not user:
+            return False
+        
+        return (user.quota_used_usd + cost) <= user.quota_monthly_usd
+    
+    def deduct_quota(self, user_id: str, cost: float) -> bool:
+        """Deduct from user quota"""
+        user = self.get_user(user_id)
+        if not user:
+            return False
+        
+        if not self.check_quota(user_id, cost):
+            logger.warning(f"Quota exceeded for user: {user_id}")
+            return False
+        
+        user.quota_used_usd += cost
+        return True
 
-@router.get("/callback")
-async def callback(request: Request):
-    """Handle OAuth callback"""
-    code = request.query_params.get("code")
-    error = request.query_params.get("error")
-    
-    if error:
-        logger.warning(f"OAuth error: {error}")
-        raise HTTPException(status_code=400, detail=f"Authorization failed: {error}")
-    
-    if not code:
-        raise HTTPException(status_code=400, detail="Authorization code missing")
-    
-    # Placeholder - implement token exchange in production
-    logger.info("OAuth callback received")
-    return RedirectResponse(url="/")
 
-@router.get("/logout")
-async def logout():
-    """Logout user"""
-    response = RedirectResponse(url="/")
-    response.delete_cookie("user_email")
-    response.delete_cookie("user_name")
-    response.delete_cookie("user_picture")
-    logger.info("User logged out")
-    return response
+# Global auth manager
+_auth_manager: Optional[AuthManager] = None
 
-@router.get("/user")
-async def get_user(request: Request):
-    """Get current user info from cookies"""
-    user = {
-        "email": request.cookies.get("user_email"),
-        "name": request.cookies.get("user_name"),
-        "picture": request.cookies.get("user_picture"),
-        "authenticated": bool(request.cookies.get("user_email"))
-    }
-    return JSONResponse(content=user)
+
+def get_auth_manager() -> AuthManager:
+    """Get auth manager"""
+    global _auth_manager
+    if _auth_manager is None:
+        _auth_manager = AuthManager()
+    return _auth_manager

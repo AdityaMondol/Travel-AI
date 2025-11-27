@@ -103,6 +103,13 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.routes import router
+from app.api.middleware import (
+    AuthMiddleware,
+    RateLimitMiddleware,
+    MetricsMiddleware,
+    ErrorHandlingMiddleware
+)
+from app.core.monitoring import MetricsMiddleware as PrometheusMiddleware
 
 app = FastAPI(
     title="Leonore AI",
@@ -111,7 +118,11 @@ app = FastAPI(
     docs_url="/api/docs"
 )
 
-# Add CORS middleware
+# Add middleware stack
+app.add_middleware(ErrorHandlingMiddleware)
+app.add_middleware(MetricsMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(AuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

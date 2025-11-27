@@ -1,106 +1,186 @@
-"""Monitoring and metrics collection"""
+"""Prometheus monitoring and observability"""
+from prometheus_client import Counter, Histogram, Gauge, CollectorRegistry
+from typing import Dict, Any
 import time
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
-from collections import defaultdict
 from app.core.logger import setup_logger
+
 
 logger = setup_logger(__name__)
 
+
 class MetricsCollector:
-    """Collect and track system metrics"""
+    """Prometheus metrics collection"""
     
     def __init__(self):
-        self.request_times = defaultdict(list)
-        self.error_counts = defaultdict(int)
-        self.agent_metrics = {}
-        self.start_time = datetime.now()
-    
-    def record_request(self, endpoint: str, duration: float, status_code: int):
-        """Record API request metrics"""
-        self.request_times[endpoint].append({
-            "duration": duration,
-            "status": status_code,
-            "timestamp": datetime.now().isoformat()
-        })
+        self.registry = CollectorRegistry()
         
-        if status_code >= 400:
-            self.error_counts[endpoint] += 1
-    
-    def record_agent_metric(self, agent_id: str, metric_name: str, value: Any):
-        """Record agent-specific metrics"""
-        if agent_id not in self.agent_metrics:
-            self.agent_metrics[agent_id] = {}
+        # Request metrics
+        self.request_count = Counter(
+            "leonore_requests_total",
+            "Total requests",
+            ["method", "endpoint", "status"],
+            registry=self.registry
+        )
         
-        self.agent_metrics[agent_id][metric_name] = {
-            "value": value,
-            "timestamp": datetime.now().isoformat()
+        self.request_duration = Histogram(
+            "leonore_request_duration_seconds",
+            "Request duration",
+            ["method", "endpoint"],
+            registry=self.registry
+        )
+        
+        # Agent metrics
+        self.agent_count = Gauge(
+            "leonore_agents_active",
+            "Active agents",
+            registry=self.registry
+        )
+        
+        self.agent_actions = Counter(
+            "leonore_agent_actions_total",
+            "Agent actions",
+            ["agent_type", "action"],
+            registry=self.registry
+        )
+        
+        # LLM metrics
+        self.llm_tokens = Counter(
+            "leonore_llm_tokens_total",
+            "LLM tokens used",
+            ["model"],
+            registry=self.registry
+        )
+        
+        self.llm_cost = Gauge(
+            "leonore_llm_cost_usd",
+            "LLM cost in USD",
+            registry=self.registry
+        )
+        
+        # Error metrics
+        self.errors = Counter(
+            "leonore_errors_total",
+            "Total errors",
+            ["error_type"],
+            registry=self.registry
+        )
+        
+        # Safety metrics
+        self.policy_violations = Counter(
+            "leonore_policy_violations_total",
+            "Policy violations",
+            ["violation_type"],
+            registry=self.registry
+        )
+        
+        # Resource metrics
+        self.memory_usage = Gauge(
+            "leonore_memory_usage_bytes",
+            "Memory usage",
+            registry=self.registry
+        )
+        
+        self.gpu_memory = Gauge(
+            "leonore_gpu_memory_bytes",
+            "GPU memory usage",
+            registry=self.registry
+        )
+    
+    def record_request(self, method: str, endpoint: str, status: int, duration: float):
+        """Record HTTP request"""
+        self.request_count.labels(method=method, endpoint=endpoint, status=status).inc()
+        self.request_duration.labels(method=method, endpoint=endpoint).observe(duration)
+    
+    def record_agent_action(self, agent_type: str, action: str):
+        """Record agent action"""
+        self.agent_actions.labels(agent_type=agent_type, action=action).inc()
+    
+    def record_llm_usage(self, model: str, tokens: int, cost: float):
+        """Record LLM usage"""
+        self.llm_tokens.labels(model=model).inc(tokens)
+        self.llm_cost.set(cost)
+    
+    def record_error(self, error_type: str):
+        """Record error"""
+        self.errors.labels(error_type=error_type).inc()
+    
+    def record_policy_violation(self, violation_type: str):
+        """Record policy violation"""
+        self.policy_violations.labels(violation_type=violation_type).inc()
+    
+    def set_active_agents(self, count: int):
+        """Set active agent count"""
+        self.agent_count.set(count)
+    
+    def set_memory_usage(self, bytes: int):
+        """Set memory usage"""
+        self.memory_usage.set(bytes)
+    
+    def set_gpu_memory(self, bytes: int):
+        """Set GPU memory usage"""
+        self.gpu_memory.set(bytes)
+    
+    def get_system_stats(self) -> Dict[str, Any]:
+        """Get system statistics"""
+        import psutil
+        
+        process = psutil.Process()
+        
+        return {
+            "memory_mb": process.memory_info().rss / 1024 / 1024,
+            "cpu_percent": process.cpu_percent(interval=0.1),
+            "num_threads": process.num_threads(),
+            "open_files": len(process.open_files()),
         }
     
     def get_endpoint_stats(self, endpoint: str, minutes: int = 5) -> Dict[str, Any]:
-        """Get statistics for an endpoint"""
-        cutoff = datetime.now() - timedelta(minutes=minutes)
-        
-        requests = [
-            r for r in self.request_times.get(endpoint, [])
-            if datetime.fromisoformat(r["timestamp"]) > cutoff
-        ]
-        
-        if not requests:
-            return {
-                "endpoint": endpoint,
-                "requests": 0,
-                "avg_duration": 0,
-                "error_rate": 0
-            }
-        
-        durations = [r["duration"] for r in requests]
-        errors = sum(1 for r in requests if r["status"] >= 400)
-        
+        """Get endpoint statistics"""
+        # This would integrate with Prometheus query API
         return {
             "endpoint": endpoint,
-            "requests": len(requests),
-            "avg_duration": sum(durations) / len(durations),
-            "min_duration": min(durations),
-            "max_duration": max(durations),
-            "error_rate": errors / len(requests),
-            "errors": errors
+            "period_minutes": minutes,
+            "requests": 0,
+            "avg_duration_ms": 0,
+            "error_rate": 0.0,
         }
-    
-    def get_system_stats(self) -> Dict[str, Any]:
-        """Get overall system statistics"""
-        uptime = datetime.now() - self.start_time
-        
-        total_requests = sum(len(v) for v in self.request_times.values())
-        total_errors = sum(self.error_counts.values())
-        
-        return {
-            "uptime_seconds": uptime.total_seconds(),
-            "total_requests": total_requests,
-            "total_errors": total_errors,
-            "error_rate": total_errors / total_requests if total_requests > 0 else 0,
-            "endpoints": len(self.request_times),
-            "agents": len(self.agent_metrics),
-            "timestamp": datetime.now().isoformat()
-        }
-    
-    def get_agent_stats(self, agent_id: str) -> Dict[str, Any]:
-        """Get statistics for a specific agent"""
-        return self.agent_metrics.get(agent_id, {})
-    
-    def cleanup_old_data(self, hours: int = 24):
-        """Remove metrics older than specified hours"""
-        cutoff = datetime.now() - timedelta(hours=hours)
-        
-        for endpoint in self.request_times:
-            self.request_times[endpoint] = [
-                r for r in self.request_times[endpoint]
-                if datetime.fromisoformat(r["timestamp"]) > cutoff
-            ]
 
-# Global metrics collector
-metrics = MetricsCollector()
+
+# Global metrics instance
+_metrics: MetricsCollector = None
+
 
 def get_metrics() -> MetricsCollector:
-    """Get global metrics collector"""
-    return metrics
+    """Get metrics collector"""
+    global _metrics
+    if _metrics is None:
+        _metrics = MetricsCollector()
+    return _metrics
+
+
+class MetricsMiddleware:
+    """FastAPI middleware for metrics collection"""
+    
+    def __init__(self, app):
+        self.app = app
+        self.metrics = get_metrics()
+    
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        
+        start_time = time.time()
+        
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                status = message["status"]
+                duration = time.time() - start_time
+                
+                method = scope["method"]
+                path = scope["path"]
+                
+                self.metrics.record_request(method, path, status, duration)
+            
+            await send(message)
+        
+        await self.app(scope, receive, send_wrapper)

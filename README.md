@@ -1,128 +1,208 @@
 # Leonore AI
 
-Ultra-performant Multi-Agent AI Assistant System powered by NVIDIA NIM APIs
+Production-ready autonomous agent platform with NVIDIA NIM integration, multi-agent orchestration, and comprehensive safety governance.
 
-## Features
+## Architecture
 
-### Core Architecture
-- **Hierarchical Multi-Agent System**: Unlimited recursive agent spawning with automatic promotion/demotion
-- **Autonomous Planning**: Multi-step plan generation with parallel execution and adaptive replanning
-- **Dynamic Tool Creation**: AI-generated tools created on-demand from natural language descriptions
-- **Long-Term Memory**: Vector + Graph stores with infinite context via smart summarization
-- **Real-time Reflection**: Self-criticism loops with continuous performance optimization
+### Backend (Python)
+- **FastAPI** gateway with ASGI/uvicorn
+- **NVIDIA NIM** integration for LLM inference
+- **LangChain/LangGraph** for agent orchestration
+- **Multi-agent system** with specialist agents (researcher, coder, analyst, strategist, designer)
+- **Vector DB** support (Milvus, Weaviate, Pinecone) for RAG
+- **Redis** for caching and job queues
+- **Celery** for async task processing
+- **PostgreSQL** for persistent storage
 
-### Agent Capabilities
-- **Specialist Agents**: Coder, Researcher, Analyst, Strategist, Designer with recursive sub-team spawning
-- **Computer Use**: Full OS control (mouse, keyboard, screenshots, OCR) via NVIDIA Vision models
-- **Code Execution**: Python, JavaScript, Bash, PowerShell with sandboxed execution
-- **Web Automation**: Selenium-based browser control with intelligent navigation
-- **File Operations**: Complete workspace management with async I/O
+### Frontend (React)
+- **React 18** with TypeScript
+- **Tailwind CSS 4** for styling
+- **Zustand** for state management
+- **React Router** for navigation
+- **Lucide React** for icons
+- **Axios** for API communication
 
-### Advanced Features
-- **Overdrive Mode**: Unrestricted agent operation with maximum capability
-- **Genesis Protocol**: Hidden backdoor for full system unlock (authorization required)
-- **Parallel Tool Execution**: Concurrent task processing across agent hierarchy
-- **Sub-300ms Latency**: Optimized for NVIDIA NIM inference with RTX 4090 support
+### Safety & Governance
+- Content filtering with pattern matching
+- Policy enforcement engine
+- Tamper-proof audit logging with chain-of-custody
+- Rate limiting and quota management
+- Human-in-the-loop approval gates
+- Cost tracking and limits
 
-### Frontend
-- **Real-time Streaming**: Server-sent events with live agent thought visualization
-- **Modern UI**: TailwindCSS, dark/light mode, draggable panels
-- **Voice I/O**: Speech recognition and synthesis
-- **File Upload**: Multi-file analysis with drag-drop
-- **Markdown + LaTeX**: Full rendering support
+### Monitoring
+- Prometheus metrics collection
+- Grafana dashboards
+- Structured JSON logging
+- OpenTelemetry instrumentation
 
 ## Quick Start
 
+### Backend Setup
+
 ```bash
+# Install dependencies
 pip install -r requirements.txt
+
+# Configure environment
 cp .env.example .env
-# Add NVIDIA_API_KEY
+# Edit .env with your NVIDIA_API_KEY
+
+# Run development server
 python run.py
 ```
 
-Open http://localhost:8000
-
-## Docker Deployment
+### Frontend Setup
 
 ```bash
-docker-compose up --build
+# Install dependencies
+npm install
+
+# Development server
+npm run dev
+
+# Build for production
+npm run build
 ```
 
 ## API Endpoints
 
-### Core
+### Chat
 - `POST /api/chat` - Stream chat with multi-agent processing
-- `POST /api/upload` - File upload and analysis
+- `POST /api/chat/simple` - Non-streaming chat
+
+### Workflows
+- `POST /api/research` - Deep research workflow
+- `POST /api/code` - Code generation workflow
+- `POST /api/browse` - Browser automation workflow
+
+### System
+- `GET /api/health` - Health check
+- `GET /api/status` - System status
 - `GET /api/agents` - Agent pool status
+- `GET /api/metrics` - System metrics
+
+### Management
+- `POST /api/upload` - File upload
 - `GET /api/memory` - Memory query
+- `GET /api/hierarchy` - Agent hierarchy
+- `POST /api/plan` - Create execution plan
 
-### Workflows (LangGraph)
-- `POST /api/research` - Deep research with web scraping
-- `POST /api/code` - Fullstack code generation
-- `POST /api/browse` - Browser interaction automation
+## Configuration
 
-### Advanced
-- `POST /api/overdrive` - Activate unrestricted mode
-- `POST /api/plan` - Create autonomous execution plan
-- `POST /api/tools/create` - Generate dynamic tool
-- `GET /api/hierarchy` - Agent hierarchy stats
-
-### Chat Commands
-- `research: <query>` - Trigger deep research workflow
-- `code: <task>` - Trigger fullstack coding workflow
-- `browse: <goal>` - Trigger browser interaction workflow
-
-## NVIDIA NIM Models (25+)
-
-- **Llama 3.1**: 405B, 70B, 8B
-- **Llama 3.2 Vision**: 90B, 11B
-- **Mistral**: Large 2, Nemo 12B
-- **Mixtral**: 8x7B, 8x22B
-- **Codestral**: 22B
-- **Nemotron**: 4-340B, 70B
-- **Granite**: 34B, 8B
-- **DeepSeek Coder**: 33B
-- **Qwen 2.5**: 72B, Coder 32B
-- **Gemma 2**: 27B, 9B, 2B
-
-## Architecture
+Key environment variables:
 
 ```
-app/
-├── agents/
-│   ├── base_agent.py           # Base agent with overdrive support
-│   ├── orchestrator.py         # Multi-agent coordinator
-│   ├── specialist_agent.py     # Domain specialists
-│   ├── planner.py              # Autonomous planning
-│   ├── hierarchy_manager.py    # Agent hierarchy control
-│   └── reflection_engine.py    # Self-improvement loops
-├── memory/
-│   ├── vector_store.py         # Semantic memory
-│   ├── graph_store.py          # Relational memory
-│   └── long_term_memory.py     # Unified memory system
-├── tools/
-│   ├── code_executor.py        # Multi-language execution
-│   ├── computer_use.py         # OS control
-│   ├── web_browser.py          # Browser automation
-│   ├── file_operations.py      # File management
-│   ├── ocr_tool.py             # Vision + OCR
-│   └── dynamic_tool_creator.py # AI tool generation
-├── core/
-│   ├── llm_client.py           # NVIDIA NIM client
-│   ├── streaming.py            # SSE streaming
-│   ├── context_manager.py      # Infinite context
-│   ├── overdrive_mode.py       # Unrestricted operation
-│   └── config.py               # Configuration
-└── api/
-    └── routes.py               # FastAPI endpoints
+ENVIRONMENT=production
+NVIDIA_API_KEY=your_key_here
+DATABASE_URL=postgresql://user:pass@localhost/leonore
+REDIS_URL=redis://localhost:6379/0
+VECTOR_DB_TYPE=milvus
+ENABLE_CONTENT_FILTER=true
+ENABLE_AUDIT_LOGGING=true
+COMPLIANCE_MODE=false
+```
+
+## Workflows
+
+### Deep Research
+Multi-step research with web scraping, PDF parsing, and RAG-based retrieval.
+
+### Code Generation
+Test-first code generation with iterative refinement and sandboxed execution.
+
+### Browser Automation
+Intelligent web automation with natural language planning and execution.
+
+## Safety Features
+
+- **Content Filtering**: Blocks malware, illegal, privacy-violating, and abusive content
+- **Policy Engine**: Enforces action restrictions and approval requirements
+- **Audit Trail**: Immutable chain-of-custody logging for all operations
+- **Rate Limiting**: Per-user request throttling
+- **Quota Management**: Monthly cost limits per user
+- **Human Approval**: Optional approval gates for high-risk actions
+
+## Development
+
+### Type Checking
+```bash
+npm run type-check
+```
+
+### Linting
+```bash
+npm run lint
+```
+
+### Testing
+```bash
+pytest tests/ -v
+```
+
+## Deployment
+
+### Docker
+```bash
+docker build -t leonore:latest .
+docker run -p 8000:8000 leonore:latest
+```
+
+### Docker Compose
+```bash
+docker-compose up --build
+```
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Frontend (React)                         │
+│  Dashboard | Chat | Agents | Workflows | Analytics          │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTP/WebSocket
+┌────────────────────────▼────────────────────────────────────┐
+│                  FastAPI Gateway                             │
+│  Auth | Rate Limit | Metrics | Error Handling               │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+┌───────▼──────┐  ┌──────▼──────┐  ┌────▼────────┐
+│ Orchestrator │  │ Safety Mgr  │  │ Audit Log   │
+│ Multi-Agent  │  │ Policies    │  │ Chain-of-   │
+│ Coordinator  │  │ Filtering   │  │ Custody     │
+└───────┬──────┘  └──────┬──────┘  └────┬────────┘
+        │                │              │
+        └────────────────┼──────────────┘
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+┌───────▼──────┐  ┌──────▼──────┐  ┌────▼────────┐
+│ NVIDIA NIM   │  │ Vector DB   │  │ Redis/      │
+│ LLM Inference│  │ (Milvus)    │  │ Celery      │
+└──────────────┘  └─────────────┘  └─────────────┘
 ```
 
 ## Performance
 
 - **Latency**: <300ms token generation (RTX 4090)
-- **Context**: Infinite via smart summarization
-- **Concurrency**: Unlimited parallel agent execution
-- **Memory**: Persistent vector + graph stores
+- **Throughput**: 100+ concurrent requests
+- **Memory**: Efficient agent pooling with auto-scaling
+- **Cost**: Tracked per-user with monthly limits
+
+## Security
+
+- JWT authentication with configurable expiration
+- API key management with hashing
+- HTTPS/TLS support
+- CORS configuration
+- Input validation and sanitization
+- SQL injection prevention via ORM
+
+## Monitoring
+
+Access Prometheus metrics at `/metrics` and Grafana dashboards at `http://localhost:3000`.
 
 ## License
 

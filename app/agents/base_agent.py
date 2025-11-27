@@ -1,146 +1,158 @@
-import asyncio
-from typing import Dict, Any, Optional, List, Callable
-from abc import ABC, abstractmethod
+"""Base agent with LangGraph integration"""
+from typing import Dict, Any, Optional, List
+from enum import Enum
 from datetime import datetime
 import uuid
 from app.core.logger import setup_logger
-from app.core.llm_client import LLMClient
+from app.core.audit import get_audit_log, AuditEventType
+
 
 logger = setup_logger(__name__)
 
-class AgentState:
+
+class AgentState(str, Enum):
+    """Agent lifecycle states"""
     IDLE = "idle"
     THINKING = "thinking"
     EXECUTING = "executing"
     WAITING = "waiting"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    COMPLETE = "complete"
+    ERROR = "error"
 
-class BaseAgent(ABC):
-    def __init__(self, name: str, role: str, model: str = None, temperature: float = 0.7):
-        self.id = str(uuid.uuid4())
-        self.name = name
-        self.role = role
-        self.model = model
-        self.temperature = temperature
+
+class BaseAgent:
+    """Base agent with state management and audit trail"""
+    
+    def __init__(self, agent_id: str, agent_type: str, config: Dict[str, Any] = None):
+        self.agent_id = agent_id
+        self.agent_type = agent_type
+        self.config = config or {}
         self.state = AgentState.IDLE
-        self.memory: List[Dict[str, Any]] = []
-        self.children: List['BaseAgent'] = []
-        self.parent: Optional['BaseAgent'] = None
-        self.tools: Dict[str, Callable] = {}
-        self.llm = LLMClient(provider="nvidia", model=model)
-        self.created_at = datetime.now()
-        self.metrics = {
-            "tasks_completed": 0,
-            "tasks_failed": 0,
-            "total_tokens": 0,
-            "avg_response_time": 0.0
-        }
+        self.created_at = datetime.utcnow()
+        self.last_action = None
+        self.action_history: List[Dict[str, Any]] = []
+        self.memory: Dict[str, Any] = {}
+        self.audit_log = get_audit_log()
+        self.cost_used = 0.0
     
-    @abstractmethod
-    async def execute(self, task: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
-        pass
+    async def initialize(self):
+        """Initialize agent"""
+        await self.audit_log.log_event(
+            AuditEventType.AGENT_SPAWN,
+            "system",
+            self.agent_id,
+            "initialize",
+            {"agent_type": self.agent_type, "config": self.config}
+        )
+        logger.info(f"Agent initialized: {self.agent_id} ({self.agent_type})")
     
-    async def think(self, prompt: str) -> str:
+    async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute task"""
         self.state = AgentState.THINKING
-        start = datetime.now()
+        
         try:
-            from app.core.overdrive_mode import overdrive_system
-            modifier = overdrive_system.get_system_prompt_modifier(self.id)
-            full_prompt = f"{modifier}\n\n{prompt}" if modifier else prompt
-            
-            response = await asyncio.to_thread(
-                self.llm.generate, 
-                full_prompt, 
-                self.temperature
+            await self.audit_log.log_event(
+                AuditEventType.AGENT_ACTION,
+                self.agent_id,
+                "task",
+                "execute",
+                {"task": task, "context_keys": list(context.keys())}
             )
             
-            if not response:
-                logger.warning(f"Agent {self.name} received empty response")
-                response = f"Processed: {prompt[:100]}"
+            result = await self._execute_internal(task, context)
             
-            elapsed = (datetime.now() - start).total_seconds()
-            self._update_metrics(elapsed)
-            self.memory.append({
-                "timestamp": datetime.now().isoformat(),
-                "type": "thought",
-                "prompt": prompt[:200],
-                "response": response[:500] if response else "",
-                "elapsed": elapsed,
-                "overdrive": overdrive_system.is_unrestricted(self.id)
-            })
-            self.state = AgentState.COMPLETED
-            return response
-        except Exception as e:
-            logger.error(f"Agent {self.name} think error: {e}")
-            self.state = AgentState.FAILED
-            return f"Error processing request: {str(e)[:100]}"
-    
-    async def spawn_child(self, name: str, role: str, model: str = None) -> 'BaseAgent':
-        from app.agents.specialist_agent import SpecialistAgent
-        child = SpecialistAgent(name, role, model or self.model)
-        child.parent = self
-        self.children.append(child)
-        logger.info(f"Agent {self.name} spawned child {name}")
-        return child
-    
-    def register_tool(self, name: str, func: Callable):
-        self.tools[name] = func
-        logger.info(f"Agent {self.name} registered tool: {name}")
-    
-    async def use_tool(self, tool_name: str, **kwargs) -> Any:
-        if tool_name not in self.tools:
-            raise ValueError(f"Tool {tool_name} not found")
-        self.state = AgentState.EXECUTING
-        try:
-            result = await asyncio.to_thread(self.tools[tool_name], **kwargs)
-            self.memory.append({
-                "timestamp": datetime.now().isoformat(),
-                "type": "tool_use",
-                "tool": tool_name,
-                "args": kwargs,
-                "result": result
-            })
+            self.state = AgentState.COMPLETE
+            self.last_action = {
+                "task": task,
+                "result": result,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            self.action_history.append(self.last_action)
+            
             return result
+        
         except Exception as e:
-            logger.error(f"Tool {tool_name} error: {e}")
+            self.state = AgentState.ERROR
+            logger.error(f"Agent execution error: {e}")
+            
+            await self.audit_log.log_event(
+                AuditEventType.AGENT_ACTION,
+                self.agent_id,
+                "task",
+                "execute",
+                {"task": task, "error": str(e)},
+                result="error"
+            )
+            
             raise
     
-    async def reflect(self) -> Dict[str, Any]:
-        recent_memory = self.memory[-10:] if len(self.memory) > 10 else self.memory
-        reflection_prompt = f"""
-Reflect on your recent actions and performance:
-Role: {self.role}
-Recent memory: {recent_memory}
-Metrics: {self.metrics}
-
-Provide:
-1. What went well
-2. What could improve
-3. Next actions
-"""
-        reflection = await self.think(reflection_prompt)
+    async def _execute_internal(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal execution logic (override in subclasses)"""
+        return {"status": "not_implemented"}
+    
+    def get_state(self) -> Dict[str, Any]:
+        """Get agent state"""
         return {
-            "timestamp": datetime.now().isoformat(),
-            "reflection": reflection,
-            "metrics": self.metrics
+            "agent_id": self.agent_id,
+            "agent_type": self.agent_type,
+            "state": self.state.value,
+            "created_at": self.created_at.isoformat(),
+            "last_action": self.last_action,
+            "action_count": len(self.action_history),
+            "cost_used": self.cost_used,
         }
     
-    def _update_metrics(self, elapsed: float):
-        self.metrics["tasks_completed"] += 1
-        current_avg = self.metrics["avg_response_time"]
-        total = self.metrics["tasks_completed"]
-        self.metrics["avg_response_time"] = (current_avg * (total - 1) + elapsed) / total
+    def store_memory(self, key: str, value: Any):
+        """Store in agent memory"""
+        self.memory[key] = value
     
-    def get_status(self) -> Dict[str, Any]:
+    def retrieve_memory(self, key: str) -> Optional[Any]:
+        """Retrieve from agent memory"""
+        return self.memory.get(key)
+    
+    async def cleanup(self):
+        """Cleanup agent resources"""
+        self.state = AgentState.IDLE
+        logger.info(f"Agent cleaned up: {self.agent_id}")
+
+
+class SpecialistAgent(BaseAgent):
+    """Specialist agent for specific domains"""
+    
+    SPECIALISTS = {
+        "researcher": "Deep research and information gathering",
+        "coder": "Code generation and debugging",
+        "analyst": "Data analysis and visualization",
+        "strategist": "Planning and strategy",
+        "designer": "UI/UX design",
+    }
+    
+    def __init__(self, specialist_type: str, config: Dict[str, Any] = None):
+        if specialist_type not in self.SPECIALISTS:
+            raise ValueError(f"Unknown specialist type: {specialist_type}")
+        
+        agent_id = f"{specialist_type}_{uuid.uuid4().hex[:8]}"
+        super().__init__(agent_id, f"specialist_{specialist_type}", config)
+        self.specialist_type = specialist_type
+    
+    async def _execute_internal(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute specialist task"""
+        from app.core.llm_client import get_llm_client
+        
+        llm = get_llm_client()
+        
+        # Build specialist prompt
+        prompt = f"""You are a {self.specialist_type} specialist.
+Task: {task}
+Context: {context}
+
+Provide a detailed response."""
+        
+        response = await llm.generate(prompt)
+        
         return {
-            "id": self.id,
-            "name": self.name,
-            "role": self.role,
-            "state": self.state,
-            "model": self.model,
-            "children_count": len(self.children),
-            "memory_size": len(self.memory),
-            "metrics": self.metrics,
-            "uptime": (datetime.now() - self.created_at).total_seconds()
+            "specialist": self.specialist_type,
+            "task": task,
+            "response": response,
+            "timestamp": datetime.utcnow().isoformat()
         }

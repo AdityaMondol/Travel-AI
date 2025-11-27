@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-neutral-50 text-neutral-900;
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-5 py-2.5 bg-neutral-900 text-white rounded-sm font-medium text-sm transition-all duration-200 hover:bg-neutral-800 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply px-5 py-2.5 bg-white border border-neutral-200 text-neutral-900 rounded-sm font-medium text-sm transition-all duration-200 hover:border-neutral-900 hover:bg-neutral-50 active:scale-95 disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply px-3 py-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-sm transition-all duration-200;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 border border-neutral-200 rounded-sm bg-white text-neutral-900 text-sm transition-all duration-200 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900/10;
+  }
+
+  .card {
+    @apply bg-white border border-neutral-200 rounded-md p-6 transition-all duration-200 hover:border-neutral-300 hover:shadow-minimal;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-xs text-xs font-semibold;
+  }
+
+  .badge-success {
+    @apply bg-green-50 text-green-700;
+  }
+
+  .badge-warning {
+    @apply bg-amber-50 text-amber-700;
+  }
+
+  .badge-error {
+    @apply bg-red-50 text-red-700;
+  }
+
+  .badge-info {
+    @apply bg-blue-50 text-blue-700;
+  }
+
+  .divider {
+    @apply h-px bg-neutral-200 my-6;
+  }
+
+  .section-title {
+    @apply text-2xl font-semibold text-neutral-900 tracking-tighter mb-8;
+  }
+
+  .text-muted {
+    @apply text-neutral-600 text-sm;
+  }
+
+  .loading-spinner {
+    @apply inline-block w-4 h-4 border-2 border-neutral-200 border-t-neutral-900 rounded-full animate-spin;
+  }
+}

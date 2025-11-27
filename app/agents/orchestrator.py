@@ -1,181 +1,157 @@
-import asyncio
+"""Multi-agent orchestrator with LangGraph"""
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from app.agents.base_agent import BaseAgent, AgentState
-from app.agents.specialist_agent import (
-    CoderAgent, ResearcherAgent, AnalystAgent, 
-    StrategistAgent, DesignerAgent, SpecialistAgent
-)
-from app.agents.planner import AutonomousPlanner
-from app.agents.hierarchy_manager import HierarchyManager
-from app.tools.dynamic_tool_creator import DynamicToolCreator
-from app.core.overdrive_mode import overdrive_system
+import uuid
+from app.agents.base_agent import BaseAgent, SpecialistAgent, AgentState
 from app.core.logger import setup_logger
+from app.core.safety import get_safety_manager
+from app.core.audit import get_audit_log, AuditEventType
+
 
 logger = setup_logger(__name__)
 
+
 class OrchestratorAgent(BaseAgent):
-    def __init__(self, model: str = "meta/llama-3.1-405b-instruct"):
-        super().__init__("Orchestrator", "Multi-Agent Coordination", model, 0.7)
+    """Orchestrator for managing multiple agents"""
+    
+    def __init__(self):
+        super().__init__("orchestrator_main", "orchestrator")
         self.agent_pool: Dict[str, BaseAgent] = {}
-        self.task_queue: List[Dict[str, Any]] = []
-        self.results: List[Dict[str, Any]] = []
-        self.planner = AutonomousPlanner(self)
-        self.hierarchy = HierarchyManager()
-        self.tool_creator = DynamicToolCreator()
-        self._initialize_specialists()
+        self.active_tasks: Dict[str, Dict[str, Any]] = {}
+        self.safety_manager = get_safety_manager()
+        self.audit_log = get_audit_log()
     
-    def _initialize_specialists(self):
-        specialists = [
-            CoderAgent(),
-            ResearcherAgent(),
-            AnalystAgent(),
-            StrategistAgent(),
-            DesignerAgent()
-        ]
-        for agent in specialists:
-            self.agent_pool[agent.role] = agent
-            logger.info(f"Initialized specialist: {agent.name}")
+    async def initialize(self):
+        """Initialize orchestrator"""
+        await super().initialize()
+        
+        # Spawn initial specialist agents
+        for specialist_type in SpecialistAgent.SPECIALISTS.keys():
+            agent = SpecialistAgent(specialist_type)
+            await agent.initialize()
+            self.agent_pool[agent.agent_id] = agent
+        
+        logger.info(f"Orchestrator initialized with {len(self.agent_pool)} agents")
     
-    async def execute(self, task: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
-        self.state = AgentState.EXECUTING
-        context = context or {}
+    async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute task with multi-agent coordination"""
         
-        try:
-            plan = await self._create_plan(task, context)
-            subtasks = plan.get("subtasks", [])
-            
-            results = await self._execute_parallel(subtasks, context)
-            
-            synthesis = await self._synthesize_results(task, results)
-            
-            self.state = AgentState.COMPLETED
-            return {
-                "task": task,
-                "plan": plan,
-                "results": results,
-                "synthesis": synthesis,
-                "status": "success",
-                "timestamp": datetime.now().isoformat()
-            }
-        except Exception as e:
-            self.state = AgentState.FAILED
-            logger.error(f"Orchestrator execution failed: {e}")
-            return {
-                "task": task,
-                "error": str(e),
-                "status": "failed"
-            }
-    
-    async def _create_plan(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        available_agents = list(self.agent_pool.keys())
-        
-        planning_prompt = f"""Create an execution plan for this task:
-
-Task: {task}
-Context: {context}
-Available specialists: {available_agents}
-
-Provide a JSON plan with:
-1. subtasks: list of subtasks with assigned specialist
-2. dependencies: task dependencies
-3. parallel_groups: tasks that can run in parallel
-
-Format:
-{{
-    "subtasks": [
-        {{"id": 1, "description": "...", "specialist": "...", "priority": 1}}
-    ],
-    "dependencies": {{"2": [1]}},
-    "parallel_groups": [[1, 3], [2, 4]]
-}}"""
-        
-        plan_text = await self.think(planning_prompt)
-        
-        import json
-        try:
-            plan = json.loads(plan_text)
-        except:
-            plan = {
-                "subtasks": [
-                    {"id": 1, "description": task, "specialist": "Research & Analysis", "priority": 1}
-                ],
-                "dependencies": {},
-                "parallel_groups": [[1]]
-            }
-        
-        return plan
-    
-    async def _execute_parallel(self, subtasks: List[Dict[str, Any]], context: Dict[str, Any]) -> List[Dict[str, Any]]:
-        tasks = []
-        for subtask in subtasks:
-            specialist_role = subtask.get("specialist", "Research & Analysis")
-            agent = self.agent_pool.get(specialist_role)
-            
-            if not agent:
-                agent = SpecialistAgent(
-                    f"Dynamic_{specialist_role}", 
-                    specialist_role,
-                    "meta/llama-3.1-70b-instruct"
-                )
-                self.agent_pool[specialist_role] = agent
-            
-            task_coro = agent.execute(subtask.get("description", ""), context)
-            tasks.append(task_coro)
-        
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        processed_results = []
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                processed_results.append({
-                    "subtask_id": i,
-                    "error": str(result),
-                    "status": "failed"
-                })
-            else:
-                processed_results.append(result)
-        
-        return processed_results
-    
-    async def _synthesize_results(self, task: str, results: List[Dict[str, Any]]) -> str:
-        synthesis_prompt = f"""Synthesize these results into a coherent response:
-
-Original task: {task}
-
-Results from specialists:
-{results}
-
-Provide a comprehensive, unified response."""
-        
-        try:
-            response = await self.think(synthesis_prompt)
-            if response:
-                return response
-            return f"Task completed: {task}"
-        except Exception as e:
-            logger.error(f"Synthesis error: {e}")
-            return f"Task completed: {task}"
-    
-    async def spawn_dynamic_agent(self, role: str, task: str, model: str = None) -> Dict[str, Any]:
-        agent = SpecialistAgent(
-            f"Dynamic_{role}_{len(self.agent_pool)}", 
-            role,
-            model or "meta/llama-3.1-70b-instruct"
+        # Safety validation
+        is_safe, reason = await self.safety_manager.validate_request(
+            actor="orchestrator",
+            action="execute_task",
+            resource="task",
+            content=task,
+            context=context
         )
-        self.agent_pool[role] = agent
         
-        result = await agent.execute(task)
-        return result
+        if not is_safe:
+            logger.warning(f"Task blocked by safety: {reason}")
+            return {"status": "blocked", "reason": reason}
+        
+        # Route to appropriate agent
+        agent = self._select_agent(task)
+        
+        if not agent:
+            logger.error("No suitable agent found")
+            return {"status": "error", "reason": "No suitable agent"}
+        
+        # Execute with agent
+        result = await agent.execute(task, context)
+        
+        # Track task
+        task_id = str(uuid.uuid4())
+        self.active_tasks[task_id] = {
+            "task": task,
+            "agent_id": agent.agent_id,
+            "result": result,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        return {
+            "status": "success",
+            "task_id": task_id,
+            "agent_id": agent.agent_id,
+            "result": result
+        }
+    
+    def _select_agent(self, task: str) -> Optional[BaseAgent]:
+        """Select best agent for task"""
+        task_lower = task.lower()
+        
+        # Simple routing logic
+        if any(word in task_lower for word in ["research", "search", "find", "investigate"]):
+            return self._get_agent_by_type("researcher")
+        elif any(word in task_lower for word in ["code", "write", "generate", "debug"]):
+            return self._get_agent_by_type("coder")
+        elif any(word in task_lower for word in ["analyze", "data", "chart", "graph"]):
+            return self._get_agent_by_type("analyst")
+        elif any(word in task_lower for word in ["plan", "strategy", "design"]):
+            return self._get_agent_by_type("strategist")
+        elif any(word in task_lower for word in ["ui", "ux", "design", "layout"]):
+            return self._get_agent_by_type("designer")
+        
+        # Default to first available agent
+        for agent in self.agent_pool.values():
+            if agent.state == AgentState.IDLE:
+                return agent
+        
+        return None
+    
+    def _get_agent_by_type(self, specialist_type: str) -> Optional[BaseAgent]:
+        """Get agent by specialist type"""
+        for agent in self.agent_pool.values():
+            if isinstance(agent, SpecialistAgent) and agent.specialist_type == specialist_type:
+                if agent.state == AgentState.IDLE:
+                    return agent
+        
+        return None
+    
+    async def spawn_agent(self, agent_type: str, config: Dict[str, Any] = None) -> str:
+        """Spawn new agent"""
+        if agent_type in SpecialistAgent.SPECIALISTS:
+            agent = SpecialistAgent(agent_type, config)
+        else:
+            agent = BaseAgent(f"agent_{uuid.uuid4().hex[:8]}", agent_type, config)
+        
+        await agent.initialize()
+        self.agent_pool[agent.agent_id] = agent
+        
+        await self.audit_log.log_event(
+            AuditEventType.AGENT_SPAWN,
+            "orchestrator",
+            agent.agent_id,
+            "spawn",
+            {"agent_type": agent_type, "config": config}
+        )
+        
+        logger.info(f"Agent spawned: {agent.agent_id}")
+        return agent.agent_id
     
     def get_system_status(self) -> Dict[str, Any]:
+        """Get system status"""
+        active_agents = sum(1 for a in self.agent_pool.values() if a.state != AgentState.IDLE)
+        
         return {
-            "orchestrator": self.get_status(),
-            "agent_pool": {
-                role: agent.get_status() 
-                for role, agent in self.agent_pool.items()
-            },
             "total_agents": len(self.agent_pool),
-            "task_queue_size": len(self.task_queue),
-            "results_count": len(self.results)
+            "active_agents": active_agents,
+            "idle_agents": len(self.agent_pool) - active_agents,
+            "active_tasks": len(self.active_tasks),
+            "agents": [
+                {
+                    "id": agent.agent_id,
+                    "type": agent.agent_type,
+                    "state": agent.state.value,
+                    "cost": agent.cost_used
+                }
+                for agent in self.agent_pool.values()
+            ]
         }
+    
+    async def cleanup(self):
+        """Cleanup all agents"""
+        for agent in self.agent_pool.values():
+            await agent.cleanup()
+        
+        self.agent_pool.clear()
+        logger.info("Orchestrator cleaned up")

@@ -1,184 +1,182 @@
-from typing import Optional, Dict, Any
-import requests
-import time
-import json as json_lib
-from app.core.config import settings
+"""NVIDIA NIM client with retry logic and cost tracking"""
+import httpx
+import asyncio
+from typing import Optional, Dict, Any, AsyncGenerator
+from tenacity import retry, stop_after_attempt, wait_exponential
+from app.core.config import get_config
 from app.core.logger import setup_logger
+
 
 logger = setup_logger(__name__)
 
-class LLMClient:
-    def __init__(self, provider: str = None, model: str = None):
-        self.provider = provider or settings.LLM_PROVIDER
-        self.model = model or self._get_default_model()
-        self.api_key = self._get_api_key()
-        self.base_url = self._get_base_url()
-        self.max_retries = settings.MAX_RETRIES
-        self.retry_delay = settings.RETRY_DELAY
+
+class NIMClient:
+    """NVIDIA NIM API client"""
     
-    def _get_default_model(self) -> str:
-        if self.provider == "openrouter":
-            return settings.OPENROUTER_MODEL
-        elif self.provider == "google":
-            return settings.GOOGLE_MODEL
-        elif self.provider == "nvidia":
-            return settings.NVIDIA_MODEL
-        return settings.OPENROUTER_MODEL
+    def __init__(self):
+        self.config = get_config()
+        self.base_url = self.config.nvidia_api_base
+        self.api_key = self.config.nvidia_api_key
+        self.model = self.config.nim_model
+        self.vision_model = self.config.nim_vision_model
+        self.total_tokens = 0
+        self.total_cost = 0.0
     
-    def _get_api_key(self) -> str:
-        if self.provider == "openrouter":
-            return settings.OPENROUTER_API_KEY
-        elif self.provider == "google":
-            return settings.GOOGLE_API_KEY
-        elif self.provider == "nvidia":
-            return settings.NVIDIA_API_KEY
-        raise ValueError(f"Unknown provider: {self.provider}")
-    
-    def _get_base_url(self) -> str:
-        if self.provider == "openrouter":
-            return "https://openrouter.ai/api/v1"
-        elif self.provider == "google":
-            return "https://generativelanguage.googleapis.com/v1beta/models"
-        elif self.provider == "nvidia":
-            return settings.NVIDIA_BASE_URL
-        return "https://openrouter.ai/api/v1"
-    
-    def _retry_with_backoff(self, func, *args, **kwargs) -> Optional[str]:
-        """Retry logic with exponential backoff"""
-        for attempt in range(self.max_retries):
-            try:
-                return func(*args, **kwargs)
-            except requests.exceptions.Timeout:
-                if attempt < self.max_retries - 1:
-                    wait_time = self.retry_delay * (2 ** attempt)
-                    logger.warning(f"Timeout on attempt {attempt + 1}, retrying in {wait_time}s")
-                    time.sleep(wait_time)
-                else:
-                    logger.error(f"Max retries exceeded for timeout")
-                    raise
-            except requests.exceptions.ConnectionError as e:
-                if attempt < self.max_retries - 1:
-                    wait_time = self.retry_delay * (2 ** attempt)
-                    logger.warning(f"Connection error on attempt {attempt + 1}, retrying in {wait_time}s")
-                    time.sleep(wait_time)
-                else:
-                    logger.error(f"Max retries exceeded for connection error")
-                    raise
-            except Exception as e:
-                if attempt < self.max_retries - 1 and self._is_retryable(e):
-                    wait_time = self.retry_delay * (2 ** attempt)
-                    logger.warning(f"Error on attempt {attempt + 1}: {e}, retrying in {wait_time}s")
-                    time.sleep(wait_time)
-                else:
-                    raise
-        return None
-    
-    def _is_retryable(self, error: Exception) -> bool:
-        """Check if error is retryable"""
-        retryable_messages = ["429", "500", "502", "503", "504", "timeout"]
-        error_str = str(error).lower()
-        return any(msg in error_str for msg in retryable_messages)
-    
-    def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 2048) -> Optional[str]:
-        try:
-            if self.provider == "openrouter":
-                return self._retry_with_backoff(self._generate_openrouter, prompt, temperature, max_tokens)
-            elif self.provider == "google":
-                return self._retry_with_backoff(self._generate_google, prompt, temperature, max_tokens)
-            elif self.provider == "nvidia":
-                return self._retry_with_backoff(self._generate_nvidia, prompt, temperature, max_tokens)
-        except Exception as e:
-            logger.error(f"Generation error after retries: {e}")
-            return None
-    
-    def _generate_openrouter(self, prompt: str, temperature: float, max_tokens: int) -> Optional[str]:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
-            "max_tokens": max_tokens
-        }
-        response = requests.post(f"{self.base_url}/chat/completions", json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    
-    def _generate_google(self, prompt: str, temperature: float, max_tokens: int) -> Optional[str]:
-        url = f"{self.base_url}/{self.model}:generateContent?key={self.api_key}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens
-            }
-        }
-        response = requests.post(url, json=payload, timeout=60)
-        response.raise_for_status()
-        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
-    
-    def _generate_nvidia(self, prompt: str, temperature: float, max_tokens: int) -> Optional[str]:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
-            "max_tokens": max_tokens
-        }
-        try:
-            response = requests.post(f"{self.base_url}/chat/completions", json=payload, headers=headers, timeout=90)
-            
-            if response.status_code == 401:
-                logger.error("Invalid NVIDIA API key")
-                raise ValueError("Invalid API key")
-            
-            response.raise_for_status()
-            data = response.json()
-            
-            if "choices" in data and len(data["choices"]) > 0:
-                content = data["choices"][0]["message"]["content"]
-                logger.info(f"Generated response: {len(content)} chars")
-                return content
-            
-            logger.error(f"Unexpected response format: {data}")
-            raise ValueError("No choices in response")
-        except requests.exceptions.Timeout:
-            logger.error("NVIDIA API timeout - request took too long")
-            raise
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"Connection error: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"NVIDIA API error: {e}")
-            raise
-    
-    def generate_json(self, prompt: str) -> Optional[Dict[str, Any]]:
-        json_prompt = f"{prompt}\n\nRespond with valid JSON only."
-        response = self.generate(json_prompt)
-        if response:
-            try:
-                return json_lib.loads(response)
-            except json_lib.JSONDecodeError as e:
-                logger.error(f"JSON decode error: {e}")
-                return None
-        return None
-    
-    def batch_generate(self, prompts: list) -> list:
-        results = []
-        for prompt in prompts:
-            result = self.generate(prompt)
-            results.append(result)
-        return results
-    
-    def get_stats(self) -> Dict[str, Any]:
+    def _get_headers(self) -> Dict[str, str]:
+        """Get request headers"""
         return {
-            "provider": self.provider,
-            "model": self.model,
-            "base_url": self.base_url,
-            "max_retries": self.max_retries
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
         }
+    
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    async def generate(
+        self,
+        prompt: str,
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+        **kwargs
+    ) -> str:
+        """Generate text using NIM"""
+        model = model or self.model
+        
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            **kwargs
+        }
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                headers=self._get_headers()
+            )
+            response.raise_for_status()
+            
+            data = response.json()
+            content = data["choices"][0]["message"]["content"]
+            
+            # Track tokens and cost
+            tokens = data.get("usage", {}).get("total_tokens", 0)
+            self.total_tokens += tokens
+            self._update_cost(tokens)
+            
+            return content
+    
+    async def stream(
+        self,
+        prompt: str,
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+        **kwargs
+    ) -> AsyncGenerator[str, None]:
+        """Stream text generation"""
+        model = model or self.model
+        
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+            **kwargs
+        }
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            async with client.stream(
+                "POST",
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                headers=self._get_headers()
+            ) as response:
+                response.raise_for_status()
+                
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        data_str = line[6:]
+                        if data_str == "[DONE]":
+                            break
+                        
+                        try:
+                            import json
+                            data = json.loads(data_str)
+                            delta = data.get("choices", [{}])[0].get("delta", {})
+                            content = delta.get("content", "")
+                            if content:
+                                yield content
+                        except:
+                            pass
+    
+    async def embed(self, text: str, model: str = "nvidia/nv-embed-qa-e5-v5") -> list[float]:
+        """Generate embeddings"""
+        payload = {
+            "model": model,
+            "input": text,
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{self.base_url}/embeddings",
+                json=payload,
+                headers=self._get_headers()
+            )
+            response.raise_for_status()
+            
+            data = response.json()
+            return data["data"][0]["embedding"]
+    
+    def _update_cost(self, tokens: int):
+        """Update cost tracking (approximate)"""
+        # Rough estimate: $0.001 per 1K tokens for Llama 3.1 405B
+        cost = (tokens / 1000) * 0.001
+        self.total_cost += cost
+        
+        if self.total_cost > self.config.monthly_cost_limit_usd:
+            logger.warning(f"Monthly cost limit approaching: ${self.total_cost:.2f}")
+    
+    def get_usage(self) -> Dict[str, Any]:
+        """Get usage statistics"""
+        return {
+            "total_tokens": self.total_tokens,
+            "total_cost": f"${self.total_cost:.4f}",
+            "cost_limit": f"${self.config.monthly_cost_limit_usd:.2f}",
+        }
+
+
+class LLMClient:
+    """Unified LLM client (can swap providers)"""
+    
+    def __init__(self, provider: str = "nvidia"):
+        self.provider = provider
+        
+        if provider == "nvidia":
+            self.client = NIMClient()
+        else:
+            raise ValueError(f"Unknown provider: {provider}")
+    
+    async def generate(self, prompt: str, **kwargs) -> str:
+        """Generate text"""
+        return await self.client.generate(prompt, **kwargs)
+    
+    async def stream(self, prompt: str, **kwargs) -> AsyncGenerator[str, None]:
+        """Stream text"""
+        async for chunk in self.client.stream(prompt, **kwargs):
+            yield chunk
+    
+    async def embed(self, text: str) -> list[float]:
+        """Generate embeddings"""
+        return await self.client.embed(text)
+    
+    def get_usage(self) -> Dict[str, Any]:
+        """Get usage stats"""
+        return self.client.get_usage()
+
+
+def get_llm_client() -> LLMClient:
+    """Get LLM client"""
+    return LLMClient(provider="nvidia")
