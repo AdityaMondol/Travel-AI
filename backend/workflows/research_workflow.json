@@ -1,0 +1,34 @@
+{
+    "name": "deep_research",
+    "steps": [
+        {
+            "id": "plan",
+            "agent": "planner",
+            "instruction": "Decompose the research topic into sub-questions."
+        },
+        {
+            "id": "search",
+            "agent": "researcher",
+            "instruction": "Search for each sub-question.",
+            "dependencies": [
+                "plan"
+            ]
+        },
+        {
+            "id": "verify",
+            "agent": "verifier",
+            "instruction": "Verify the gathered information for accuracy.",
+            "dependencies": [
+                "search"
+            ]
+        },
+        {
+            "id": "synthesize",
+            "agent": "researcher",
+            "instruction": "Compile the verified information into a final report.",
+            "dependencies": [
+                "verify"
+            ]
+        }
+    ]
+}

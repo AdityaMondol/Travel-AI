@@ -1,0 +1,34 @@
+{
+    "name": "code_generation",
+    "steps": [
+        {
+            "id": "spec_review",
+            "agent": "planner",
+            "instruction": "Review the coding task and break it down."
+        },
+        {
+            "id": "generate_tests",
+            "agent": "coder",
+            "instruction": "Write tests for the proposed solution.",
+            "dependencies": [
+                "spec_review"
+            ]
+        },
+        {
+            "id": "implement",
+            "agent": "coder",
+            "instruction": "Implement the solution to pass the tests.",
+            "dependencies": [
+                "generate_tests"
+            ]
+        },
+        {
+            "id": "verify_security",
+            "agent": "verifier",
+            "instruction": "Scan the code for security vulnerabilities.",
+            "dependencies": [
+                "implement"
+            ]
+        }
+    ]
+}
